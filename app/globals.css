@@ -1,9 +1,51 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --panel-bg: rgba(11, 18, 34, 0.95);
+  --panel-border: rgba(255, 255, 255, 0.10);
 }
+
+ html[data-theme="light"] {
+   --background: #f5f7ff;
+   --foreground: #0b1222;
+   --panel-bg: rgba(255, 255, 255, 0.92);
+   --panel-border: rgba(11, 18, 34, 0.12);
+ }
+
+ html[data-theme="dark"] {
+   --background: #0a0a0a;
+   --foreground: #ededed;
+   --panel-bg: rgba(11, 18, 34, 0.95);
+   --panel-border: rgba(255, 255, 255, 0.10);
+ }
+
+ html[data-theme="light"] .theme-scope,
+ html[data-theme="light"] .theme-scope * {
+   color: var(--foreground) !important;
+ }
+
+ html[data-theme="light"] .theme-scope .text-white { color: var(--foreground) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/90 { color: color-mix(in oklab, var(--foreground) 90%, transparent) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/80 { color: color-mix(in oklab, var(--foreground) 80%, transparent) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/70 { color: color-mix(in oklab, var(--foreground) 70%, transparent) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/65 { color: color-mix(in oklab, var(--foreground) 65%, transparent) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/60 { color: color-mix(in oklab, var(--foreground) 60%, transparent) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/50 { color: color-mix(in oklab, var(--foreground) 50%, transparent) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/45 { color: color-mix(in oklab, var(--foreground) 45%, transparent) !important; }
+ html[data-theme="light"] .theme-scope .text-white\/35 { color: color-mix(in oklab, var(--foreground) 35%, transparent) !important; }
+
+ html[data-theme="light"] .theme-scope .bg-white\/5 { background-color: rgba(11, 18, 34, 0.05) !important; }
+ html[data-theme="light"] .theme-scope .bg-white\/10 { background-color: rgba(11, 18, 34, 0.08) !important; }
+ html[data-theme="light"] .theme-scope .bg-white\/\[0\.03\] { background-color: rgba(11, 18, 34, 0.04) !important; }
+ html[data-theme="light"] .theme-scope .hover\:bg-white\/10:hover { background-color: rgba(11, 18, 34, 0.08) !important; }
+ html[data-theme="light"] .theme-scope .hover\:bg-white\/\[0\.06\]:hover { background-color: rgba(11, 18, 34, 0.06) !important; }
+ html[data-theme="light"] .theme-scope .hover\:bg-white\/5:hover { background-color: rgba(11, 18, 34, 0.05) !important; }
+
+ html[data-theme="light"] .theme-scope .border-white\/10 { border-color: rgba(11, 18, 34, 0.12) !important; }
+ html[data-theme="light"] .theme-scope .dark\:border-white\/\[\.145\] { border-color: rgba(11, 18, 34, 0.12) !important; }
 
 @theme inline {
   --color-background: var(--background);
@@ -24,3 +66,144 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+ .leaflet-container {
+   z-index: 0;
+ }
+
+ .leaflet-pane,
+ .leaflet-control,
+ .leaflet-top,
+ .leaflet-bottom {
+   z-index: 0 !important;
+ }
+
+ .loader {
+   width: 50px;
+   aspect-ratio: 1;
+   --c: no-repeat radial-gradient(farthest-side, #514b82 92%, transparent);
+   background:
+     var(--c) 50% 0,
+     var(--c) 50% 100%,
+     var(--c) 100% 50%,
+     var(--c) 0 50%;
+   background-size: 10px 10px;
+   animation: l18 1s infinite;
+   position: relative;
+ }
+
+ .loader::before {
+   content: "";
+   position: absolute;
+   inset: 0;
+   margin: 3px;
+   background: repeating-conic-gradient(transparent 0 35deg, #514b82 0 90deg);
+   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+   border-radius: 50%;
+ }
+
+ @keyframes l18 {
+   100% {
+     transform: rotate(0.5turn);
+   }
+ }
+
+ .unique-loader {
+   width: 120px;
+   height: 120px;
+   position: relative;
+ }
+
+ .unique-loader::before {
+   content: "";
+   position: absolute;
+   inset: 0;
+   border-radius: 9999px;
+   background:
+     conic-gradient(
+       from 0deg,
+       rgba(47, 107, 255, 0) 0deg,
+       rgba(47, 107, 255, 0.95) 90deg,
+       rgba(34, 197, 94, 0.9) 180deg,
+       rgba(47, 107, 255, 0) 360deg
+     );
+   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 0);
+   mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 0);
+   animation: ul-spin 0.9s linear infinite;
+   filter: drop-shadow(0 0 22px rgba(47, 107, 255, 0.35));
+ }
+
+ .unique-loader::after {
+   content: "";
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   width: 56px;
+   height: 56px;
+   transform: translate(-50%, -50%);
+   border-radius: 9999px;
+   background: radial-gradient(circle at 30% 30%, rgba(47, 107, 255, 0.22), rgba(0, 0, 0, 0));
+   animation: ul-pulse 1.1s ease-in-out infinite;
+ }
+
+ .unique-loader-dots {
+   margin-top: 14px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+ }
+
+ .unique-loader-dots span {
+   width: 8px;
+   height: 8px;
+   border-radius: 9999px;
+   background: rgba(47, 107, 255, 0.95);
+   animation: ul-dot 0.9s ease-in-out infinite;
+ }
+
+ .unique-loader-dots span:nth-child(2) {
+   animation-delay: 0.12s;
+   background: rgba(34, 197, 94, 0.9);
+ }
+
+ .unique-loader-dots span:nth-child(3) {
+   animation-delay: 0.24s;
+   background: rgba(253, 224, 71, 0.9);
+ }
+
+ @keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+ @keyframes ul-spin {
+   to {
+     transform: rotate(360deg);
+   }
+ }
+
+ @keyframes ul-pulse {
+   0%,
+   100% {
+     transform: translate(-50%, -50%) scale(0.92);
+     opacity: 0.55;
+   }
+   50% {
+     transform: translate(-50%, -50%) scale(1.06);
+     opacity: 0.95;
+   }
+ }
+
+ @keyframes ul-dot {
+   0%,
+   100% {
+     transform: translateY(0);
+     opacity: 0.55;
+   }
+   50% {
+     transform: translateY(-4px);
+     opacity: 1;
+   }
+ }
