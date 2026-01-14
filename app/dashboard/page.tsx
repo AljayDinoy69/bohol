@@ -3,8 +3,9 @@
 import Image from "next/image";
 import MapPanel from "../components/MapPanel";
 import { useState, useEffect, useCallback } from "react";
-import { Users, MapPin } from "lucide-react";
+import { Users, MapPin, Shield, Eye, EyeOff } from "lucide-react";
 import SidebarAndNavbar from "../components/SidebarAndNavbar";
+import { useAuth } from "../hooks/useAuth";
 
 const boholTowns = [
   // First District
@@ -63,6 +64,7 @@ const boholTowns = [
 ];
 
 export default function DashboardPage() {
+  const { user, isAdmin, isPersonnel, permissions } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchedTown, setSearchedTown] = useState<[number, number] | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -155,13 +157,28 @@ export default function DashboardPage() {
               <div className="text-xs font-medium text-white/60">Dashboard</div>
               <div className="text-xl font-semibold tracking-tight text-white">Signal Overview</div>
             </div>
-            <div className="hidden items-center gap-2 md:flex">
-              <button className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/80 hover:bg-white/10">
-                Export
-              </button>
-              <button className="rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-200 ring-1 ring-emerald-500/30 hover:bg-emerald-500/20">
-                Live
-              </button>
+            
+            {/* User role indicator and admin controls */}
+            <div className="flex items-center gap-3">
+              {/* Role Badge */}
+              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2">
+                <Shield className={`h-4 w-4 ${isAdmin ? "text-emerald-400" : "text-blue-400"}`} />
+                <span className="text-sm font-medium text-white/80">
+                  {user?.name || user?.email} ({isAdmin ? "Admin" : "Personnel"})
+                </span>
+              </div>
+              
+              {/* Admin-only controls */}
+              {isAdmin && (
+                <div className="hidden items-center gap-2 md:flex">
+                  <button className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/80 hover:bg-white/10">
+                    Export
+                  </button>
+                  <button className="rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-200 ring-1 ring-emerald-500/30 hover:bg-emerald-500/20">
+                    Live
+                  </button>
+                </div>
+              )}
             </div>
           </header>
 

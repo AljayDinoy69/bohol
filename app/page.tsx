@@ -14,12 +14,12 @@ export default function Home() {
 
       <main className="relative isolate mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 md:px-10">
         <header className="relative z-50 flex items-center justify-between gap-6 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 backdrop-blur-xl md:px-8">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-white/10 bg-white/5">
                   <Image src="/wifi.jpg" alt="Bohol" fill className="object-cover" priority />
                 </div>
                 <div className="text-sm font-semibold tracking-wide text-white/90">
-                  Bohol Signal Map
+                  Bohol Site Monitoring
                 </div>
               </div>
 
@@ -34,7 +34,7 @@ export default function Home() {
                       <div className="mb-3 text-xs font-semibold tracking-wide text-white/50">About</div>
 
                       <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                        <div className="text-sm font-semibold text-white/90">Bohol Signal Map</div>
+                        <div className="text-sm font-semibold text-white/90">Bohol Site Monitoring</div>
                         <div className="mt-1 text-xs leading-5 text-white/60">
                           A monitoring dashboard that visualizes signal status across key areas of Bohol for faster
                           situational awareness.
@@ -192,11 +192,14 @@ export default function Home() {
               </div>
             </header>
 
-            <section className="relative z-0 mt-5 grid flex-1 gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-8">
-              <div className="flex flex-col justify-center">
+            <section className="relative z-0 mt-8 grid flex-1 gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-8">
+              <div className="flex flex-col justify-center mb-20">
                 <h1 className="text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                  Bohol Signal Map
+                  Bohol <span className="text-blue-500">Site</span>
                 </h1>
+                <h2 className="text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                  Monitoring
+                </h2>
                 <p className="mt-4 max-w-xl text-pretty text-sm leading-6 text-white/65 sm:text-base">
                   Curated and intelligent signal location monitoring across key areas of Bohol.
                 </p>

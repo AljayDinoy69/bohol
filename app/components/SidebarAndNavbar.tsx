@@ -3,18 +3,27 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Users, MapPin, FileText } from "lucide-react";
+import { useState } from "react";
+import ProfileModal from "./ProfileModal";
+import { useAuth } from "../hooks/useAuth";
 
 export default function SidebarAndNavbar({ activePage, children }: { activePage: string; children: React.ReactNode }) {
+  const { isAdmin, permissions } = useAuth();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const openProfileModal = () => setIsProfileModalOpen(true);
+  const closeProfileModal = () => setIsProfileModalOpen(false);
+
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: (
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     ) },
-    { label: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" /> },
-    { label: "Personnel", href: "/personnel", icon: <Users className="h-5 w-5" /> },
-    { label: "Site", href: "/site", icon: <MapPin className="h-5 w-5" /> },
-  ];
+    { label: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, requiredPermission: permissions.canViewReports },
+    { label: "Personnel", href: "/personnel", icon: <Users className="h-5 w-5" />, requiredPermission: permissions.canModifyPersonnel },
+    { label: "Site", href: "/site", icon: <MapPin className="h-5 w-5" />, requiredPermission: permissions.canModifySites },
+  ].filter(item => !item.requiredPermission || item.requiredPermission);
 
   return (
     <div className="theme-scope min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -49,7 +58,12 @@ export default function SidebarAndNavbar({ activePage, children }: { activePage:
             </nav>
             <div className="border-t border-white/8 p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-semibold">U</div>
+                <div 
+                  className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-semibold cursor-pointer hover:bg-blue-700 transition-colors"
+                  onClick={openProfileModal}
+                >
+                  U
+                </div>
                 <div>
                   <div className="text-sm font-medium">Admin User</div>
                   <div className="text-xs text-green-400">● Online</div>
@@ -64,6 +78,9 @@ export default function SidebarAndNavbar({ activePage, children }: { activePage:
           {children}
         </main>
       </div>
+      
+      {/* Profile Modal */}
+      <ProfileModal isOpen={isProfileModalOpen} onClose={closeProfileModal} />
     </div>
   );
 }

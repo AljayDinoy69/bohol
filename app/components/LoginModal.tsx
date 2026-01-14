@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
+import { motion } from "framer-motion";
+import { useAuth, UserRole } from "../hooks/useAuth";
 
 export default function LoginModal({
   open,
@@ -11,10 +14,12 @@ export default function LoginModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const emailError = useMemo(() => {
     if (!submitted) return "";
@@ -53,70 +58,86 @@ export default function LoginModal({
     if (!open) return;
     setSubmitted(false);
     setAuthError("");
+    setIsLoading(false);
   }, [open]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000]">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/50"
-        aria-label="Close login modal"
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center"
+    >
+      {/* Blurry background overlay */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-
-      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2">
-        <div className="rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-5 shadow-[0_25px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-          <div className="flex items-start justify-between gap-4">
+      
+      {/* Modal content */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="relative z-50 w-full max-w-md mx-4"
+      >
+        <div className="rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl p-6 shadow-2xl">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="text-lg font-semibold text-white/90">Sign in</div>
-              <div className="mt-1 text-sm text-white/60">
+              <h2 className="text-xl font-semibold text-white">Sign in</h2>
+              <p className="mt-1 text-sm text-white/60">
                 Use your account to continue to the dashboard.
-              </div>
+              </p>
             </div>
-            <button
-              type="button"
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={onClose}
-              className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              className="text-white/60 hover:text-white transition-colors"
               aria-label="Close"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                className="h-4 w-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 6l12 12M18 6l-12 12"
-                />
-              </svg>
-            </button>
+              <X className="h-5 w-5" />
+            </motion.button>
           </div>
 
           <form
-            className="mt-5 grid gap-3"
-            onSubmit={(e) => {
+            className="space-y-4"
+            onSubmit={async (e) => {
               e.preventDefault();
               setSubmitted(true);
               setAuthError("");
               if (emailError || passwordError) return;
 
+              setIsLoading(true);
+              
+              // Simulate loading delay for better UX
+              await new Promise(resolve => setTimeout(resolve, 1500));
+
               const normalizedEmail = email.trim().toLowerCase();
 
-              // Default account (temporary)
-              const defaultEmail = "admin@bohol.com";
-              const defaultPassword = "admin123";
+              // User accounts with roles
+              const users = [
+                { email: "admin@bohol.com", password: "admin123", role: "admin" as UserRole, name: "Administrator" },
+                { email: "personnel@bohol.com", password: "personnel123", role: "personnel" as UserRole, name: "Field Personnel" },
+              ];
 
-              if (normalizedEmail !== defaultEmail || password !== defaultPassword) {
+              const authenticatedUser = users.find(
+                user => user.email === normalizedEmail && user.password === password
+              );
+
+              if (!authenticatedUser) {
                 setAuthError("Invalid email or password");
+                setIsLoading(false);
                 return;
               }
 
-              window.localStorage.setItem("bohol_auth", "1");
+              // Login with role
+              login(authenticatedUser.email, authenticatedUser.role, authenticatedUser.name);
+              setIsLoading(false);
               onClose();
               router.push("/dashboard");
             }}
@@ -126,47 +147,91 @@ export default function LoginModal({
                 {authError}
               </div>
             ) : null}
-            <label className="grid gap-1">
-              <span className="text-xs font-semibold text-white/60">Email</span>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                placeholder="Enter your email"
-                className="h-11 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm text-white/85 outline-none transition-colors focus:border-white/20"
-              />
-              {emailError ? (
-                <span className="text-xs text-rose-300">{emailError}</span>
-              ) : null}
-            </label>
-
-            <label className="grid gap-1">
-              <span className="text-xs font-semibold text-white/60">Password</span>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="Enter your password"
-                className="h-11 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm text-white/85 outline-none transition-colors focus:border-white/20"
-              />
-              {passwordError ? (
-                <span className="text-xs text-rose-300">{passwordError}</span>
-              ) : null}
-            </label>
-
-            <button
-              type="submit"
-              className="mt-1 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#2F6BFF] px-6 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(47,107,255,0.35)] transition-colors hover:bg-[#3B7CFF]"
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="space-y-4"
             >
-              Sign in
-            </button>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">Email</label>
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  placeholder="Enter your email"
+                  className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-white/20"
+                />
+                {emailError ? (
+                  <span className="text-xs text-rose-300 mt-1 block">{emailError}</span>
+                ) : null}
+              </div>
 
-            <div className="mt-1 text-center text-xs text-white/55">
-              Don’t have an account? <a href="#" className="font-semibold text-white/80 hover:text-white">Request access</a>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">Password</label>
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  placeholder="Enter your password"
+                  className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-white/20"
+                />
+                {passwordError ? (
+                  <span className="text-xs text-rose-300 mt-1 block">{passwordError}</span>
+                ) : null}
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="space-y-3 pt-2"
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={isLoading}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin inline-block mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign in'
+                )}
+              </motion.button>
+
+              <div className="text-center text-xs text-white/55">
+                Don't have an account? <a href="#" className="font-semibold text-white/80 hover:text-white">Request access</a>
+              </div>
+              
+              <div className="text-center text-xs text-white/40 mt-3">
+                <div className="mb-2 font-medium text-white/60">Demo Accounts:</div>
+                <div>Admin: admin@bohol.com / admin123</div>
+                <div>Personnel: personnel@bohol.com / personnel123</div>
+              </div>
+            </motion.div>
           </form>
         </div>
-      </div>
-    </div>
+      </motion.div>
+      
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative z-50 flex flex-col items-center">
+            <div className="w-12 h-12 border-3 border-white/20 border-t-white rounded-full animate-spin" />
+            <p className="mt-4 text-white/80 text-sm">Authenticating...</p>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }

@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Users, Search, Plus, Edit, Trash2, MapPin, X } from "lucide-react";
+import { motion } from "framer-motion";
 import SidebarAndNavbar from "../components/SidebarAndNavbar";
+import { useAuth } from "../hooks/useAuth";
 
 export default function PersonnelPage() {
+  const { permissions } = useAuth();
   const [search, setSearch] = useState("");
   const [personnelAssignments, setPersonnelAssignments] = useState<{[key: string]: any[]}>({});
   const [personnel, setPersonnel] = useState<any[]>([]);
@@ -215,19 +218,33 @@ export default function PersonnelPage() {
           
           {/* Content with backdrop blur for header */}
           <div className="relative z-10">
-            <header className="flex items-center justify-between border-b border-white/10 bg-black/20 px-6 py-4 text-white backdrop-blur-lg">
+            <motion.header
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center justify-between border-b border-white/10 bg-black/20 px-6 py-4 text-white backdrop-blur-lg"
+            >
               <div>
                 <div className="text-xs font-medium text-white/60">Personnel</div>
                 <div className="text-xl font-semibold tracking-tight">Team Members</div>
               </div>
-            </header>
+            </motion.header>
 
             <div className="p-6">
-              {/* Search left, Add button right */}
-              <div className="flex items-center justify-between mb-6">
+              <motion.div 
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="flex items-center justify-between mb-6"
+            >
                 
                 {/* Search bar (left) */}
-                <div className="relative">
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="relative"
+                >
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                   <input
                     type="text"
@@ -236,31 +253,43 @@ export default function PersonnelPage() {
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-9 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/40 focus:outline-none"
                   />
-                </div>
+                </motion.div>
 
-                {/* Add button (right) */}
-                <button 
-                  onClick={handleOpenModal}
-                  disabled={isLoading}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {isLoading ? (
-                    <>
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-                      </svg>
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4" />
-                      Add Personnel
-                    </>
-                  )}
-                </button>
-              </div>
+                {/* Add button (right) - Admin only */}
+                {permissions.canModifyPersonnel && (
+                  <motion.button 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleOpenModal}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isLoading ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+                        </svg>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Add Personnel
+                      </>
+                    )}
+                  </motion.button>
+                )}
+            </motion.div>
 
-              <div className="rounded-xl border border-white/10 bg-black/30 overflow-hidden">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="rounded-xl border border-white/10 bg-black/30 overflow-hidden"
+              >
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -275,8 +304,14 @@ export default function PersonnelPage() {
                     </thead>
                     <tbody>
                       {filtered.length > 0 ? (
-                        filtered.map((p) => (
-                          <tr key={p.id} className="border-b border-white/5 hover:bg-white/5">
+                        filtered.map((p, index) => (
+                          <motion.tr
+                            key={p.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.5 + index * 0.05 }}
+                            className="border-b border-white/5 hover:bg-white/5"
+                          >
                             <td className="px-4 py-3 text-white">{p.name}</td>
                             <td className="px-4 py-3 text-white/80">{p.role}</td>
                             <td className="px-4 py-3">
@@ -310,62 +345,92 @@ export default function PersonnelPage() {
                             <td className="px-4 py-3 text-white/60">{p.email}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <button 
-                                  onClick={() => handleEdit(p)}
-                                  className="text-blue-400 hover:text-blue-300"
-                                  title="Edit"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button 
-                                  onClick={() => handleDelete(p)}
-                                  className="text-rose-400 hover:text-rose-300"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                {/* Edit button - Admin only */}
+                                {permissions.canModifyPersonnel && (
+                                  <motion.button 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.6 + index * 0.05 }}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => handleEdit(p)}
+                                    className="text-blue-400 hover:text-blue-300"
+                                    title="Edit"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </motion.button>
+                                )}
+                                
+                                {/* Delete button - Admin only */}
+                                {permissions.canModifyPersonnel && (
+                                  <motion.button 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.6 + index * 0.05 }}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => handleDelete(p)}
+                                    className="text-rose-400 hover:text-rose-300"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </motion.button>
+                                )}
+                                
+                                {/* Show restricted badge for personnel */}
+                                {!permissions.canModifyPersonnel && (
+                                  <span className="text-xs text-white/40 italic">Read-only</span>
+                                )}
                               </div>
                             </td>
-                          </tr>
+                          </motion.tr>
                         ))
                       ) : (
                         <tr>
                           <td colSpan={6} className="px-4 py-12 text-center">
-                            <div className="mx-auto w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
-                              <Users className="h-8 w-8 text-white/40" />
-                            </div>
-                            <h3 className="text-lg font-medium text-white mb-2">No personnel found</h3>
-                            <p className="text-white/60 mb-6">
-                              {search ? "Try adjusting your search terms" : "Get started by adding your first team member"}
-                            </p>
-                            {!search && (
-                              <button 
-                                onClick={handleOpenModal}
-                                disabled={isLoading}
-                                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-                                    </svg>
-                                    Loading...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Plus className="h-4 w-4" />
-                                    Add Personnel
-                                  </>
-                                )}
-                              </button>
-                            )}
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.5, delay: 0.5 }}
+                            >
+                              <div className="mx-auto w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
+                                <Users className="h-8 w-8 text-white/40" />
+                              </div>
+                              <h3 className="text-lg font-medium text-white mb-2">No personnel found</h3>
+                              <p className="text-white/60 mb-6">
+                                {search ? "Try adjusting your search terms" : "Get started by adding your first team member"}
+                              </p>
+                              {!search && permissions.canModifyPersonnel && (
+                                <motion.button 
+                                  whileHover={{ scale: 1.03 }}
+                                  whileTap={{ scale: 0.97 }}
+                                  onClick={handleOpenModal}
+                                  disabled={isLoading}
+                                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                  {isLoading ? (
+                                    <>
+                                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+                                      </svg>
+                                      Loading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="h-4 w-4" />
+                                      Add Personnel
+                                    </>
+                                  )}
+                                </motion.button>
+                              )}
+                            </motion.div>
                           </td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
@@ -373,29 +438,48 @@ export default function PersonnelPage() {
 
       {/* Add Personnel Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+        >
           {/* Blurry background overlay */}
-          <div 
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={handleCloseModal}
           />
           
           {/* Modal content */}
-          <div className="relative z-50 w-full max-w-md mx-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="relative z-50 w-full max-w-md mx-4"
+          >
             <div className="rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-white">Add New Personnel</h2>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={handleCloseModal}
                   className="text-white/60 hover:text-white transition-colors"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </motion.button>
               </div>
               
-              <div className="space-y-4">
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="space-y-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">Name</label>
                   <input
@@ -444,50 +528,78 @@ export default function PersonnelPage() {
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
-              </div>
+              </motion.div>
               
-              <div className="flex items-center gap-3 pt-6">
-                <button
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+                className="flex items-center gap-3 pt-6"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleCloseModal}
                   className="flex-1 px-4 py-2 border border-white/10 text-white/80 rounded-lg hover:bg-white/5 transition-colors"
                 >
                   Cancel
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleAddPersonnel}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Add Personnel
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
       
       {/* Edit Modal */}
       {showEditModal && selectedPersonnel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div 
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+        >
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowEditModal(false)}
           />
           
-          <div className="relative z-50 w-full max-w-md mx-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="relative z-50 w-full max-w-md mx-4"
+          >
             <div className="rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-white">Edit Personnel</h2>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setShowEditModal(false)}
                   className="text-white/60 hover:text-white transition-colors"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </motion.button>
               </div>
               
-              <div className="space-y-4">
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="space-y-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">Name</label>
                   <input
@@ -536,38 +648,64 @@ export default function PersonnelPage() {
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
-              </div>
+              </motion.div>
               
-              <div className="flex items-center gap-3 pt-6">
-                <button
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+                className="flex items-center gap-3 pt-6"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setShowEditModal(false)}
                   className="flex-1 px-4 py-2 border border-white/10 text-white/80 rounded-lg hover:bg-white/5 transition-colors"
                 >
                   Cancel
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleEditSubmit}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Update Personnel
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Delete Modal */}
       {showDeleteModal && selectedPersonnel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div 
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+        >
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowDeleteModal(false)}
           />
           
-          <div className="relative z-50 w-full max-w-sm mx-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="relative z-50 w-full max-w-sm mx-4"
+          >
             <div className="rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl p-6 shadow-2xl">
-              <div className="text-center">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="text-center"
+              >
                 <div className="mx-auto w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center mb-4">
                   <Trash2 className="h-6 w-6 text-rose-400" />
                 </div>
@@ -576,24 +714,33 @@ export default function PersonnelPage() {
                   Are you sure you want to delete "<span className="text-white font-medium">{selectedPersonnel.name}</span>"? This action cannot be undone.
                 </p>
                 
-                <div className="flex items-center gap-3">
-                  <button
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="flex items-center gap-3"
+                >
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setShowDeleteModal(false)}
                     className="flex-1 px-4 py-2 border border-white/10 text-white/80 rounded-lg hover:bg-white/5 transition-colors"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleDeleteConfirm}
                     className="flex-1 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors"
                   >
                     Delete
-                  </button>
-                </div>
-              </div>
+                  </motion.button>
+                </motion.div>
+              </motion.div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
       
       {/* Loading overlay */}
