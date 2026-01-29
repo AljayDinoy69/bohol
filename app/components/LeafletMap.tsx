@@ -180,12 +180,20 @@ function DynamicMarkers({ sites }: { sites?: any[] }) {
                   </span>
                 </div>
 
-                {marker.site?.assignedTo && (
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-white/70">Assigned Personnel:</span>
-                    <span className="text-right text-white/80">{getSafeValue(marker.site.assignedTo)}</span>
-                  </div>
-                )}
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-white/70">Assigned Personnel:</span>
+                  <span className="text-right text-white/80">{getSafeValue(marker.site?.assignedPersonnel)}</span>
+                </div>
+
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-white/70">Latitude:</span>
+                  <span className="text-right text-white/80">{marker.position[0].toFixed(6)}</span>
+                </div>
+
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-white/70">Longitude:</span>
+                  <span className="text-right text-white/80">{marker.position[1].toFixed(6)}</span>
+                </div>
 
                 {marker.site?.lastUpdate && (
                   <div className="flex items-start justify-between gap-2">

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Camera, Upload } from "lucide-react";
+import { useAuth } from "@/app/hooks/useAuth";
+import { useToast } from "@/app/hooks/useToast";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -9,6 +11,11 @@ interface EditProfileModalProps {
 }
 
 export default function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
+  const { user, updateProfile } = useAuth();
+  const { addToast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState({
     firstName: "Admin",
     lastName: "User",
@@ -19,6 +26,22 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
     bio: "System administrator for Bohol Signal Map monitoring system."
   });
 
+  // Load user data when modal opens
+  useEffect(() => {
+    if (isOpen && user?.email) {
+      setFormData({
+        firstName: user.firstName || "Admin",
+        lastName: user.lastName || "User",
+        email: user.email,
+        department: user.department || "IT Services",
+        role: user.role === "admin" ? "Administrator" : "Operator",
+        phone: user.phone || "+63 912 345 6789",
+        bio: user.bio || "System administrator for Bohol Signal Map monitoring system."
+      });
+      setAvatarPreview(user.avatar || null);
+    }
+  }, [isOpen, user]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -26,11 +49,117 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      addToast("Please upload an image file", "error");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast("File size must be less than 5MB", "error");
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setAvatarPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle profile update logic here
-    console.log("Profile updated:", formData);
-    onClose();
+    
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      addToast("Please fill in all required fields", "error");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // First, handle avatar upload if changed
+      if (avatarPreview && avatarPreview !== user?.avatar) {
+        // Upload avatar
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput?.files?.[0]) {
+          const formDataObj = new FormData();
+          formDataObj.append('file', fileInput.files[0]);
+          formDataObj.append('email', formData.email);
+
+          const avatarResponse = await fetch('/api/profile/avatar', {
+            method: 'POST',
+            body: formDataObj
+          });
+
+          const avatarData = await avatarResponse.json();
+
+          if (!avatarData.success) {
+            addToast(`Failed to upload avatar: ${avatarData.error}`, "error");
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Update profile
+      const profileUpdateData: any = {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        role: formData.role,
+        department: formData.department,
+        bio: formData.bio
+      };
+
+      if (avatarPreview) {
+        profileUpdateData.avatar = avatarPreview;
+      }
+
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileUpdateData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update local auth state (now async)
+        const updateData: any = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          role: formData.role === "Administrator" ? "admin" : "personnel",
+          department: formData.department,
+          bio: formData.bio
+        };
+
+        if (avatarPreview) {
+          updateData.avatar = avatarPreview;
+        }
+
+        await updateProfile(updateData);
+
+        addToast("Profile updated successfully!", "success");
+        onClose();
+      } else {
+        addToast(`Failed to update profile: ${data.error || 'Unknown error'}`, "error");
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      addToast(`Error updating profile: ${error instanceof Error ? error.message : 'Unknown error'}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -66,18 +195,35 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
               {/* Profile Picture Section */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative group">
-                  <div className="h-24 w-24 rounded-full bg-blue-600 flex items-center justify-center font-bold text-3xl text-white">
-                    {formData.firstName.charAt(0)}{formData.lastName.charAt(0)}
-                  </div>
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      className="h-24 w-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-24 w-24 rounded-full bg-blue-600 flex items-center justify-center font-bold text-3xl text-white">
+                      {formData.firstName.charAt(0)}{formData.lastName.charAt(0)}
+                    </div>
+                  )}
                   <button
                     type="button"
-                    className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    onClick={() => document.getElementById('avatar-input')?.click()}
+                    className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                   >
                     <Camera className="h-6 w-6 text-white" />
                   </button>
                 </div>
+                <input
+                  id="avatar-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
                 <button
                   type="button"
+                  onClick={() => document.getElementById('avatar-input')?.click()}
                   className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   <Upload className="h-4 w-4" />
@@ -96,6 +242,7 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white placeholder:text-white/40 focus:border-blue-500 focus:outline-none"
                     placeholder="Enter first name"
+                    required
                   />
                 </div>
 
@@ -108,6 +255,7 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white placeholder:text-white/40 focus:border-blue-500 focus:outline-none"
                     placeholder="Enter last name"
+                    required
                   />
                 </div>
 
@@ -117,10 +265,11 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white placeholder:text-white/40 focus:border-blue-500 focus:outline-none"
+                    disabled
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white/60 placeholder:text-white/40 focus:border-blue-500 focus:outline-none cursor-not-allowed"
                     placeholder="Enter email address"
                   />
+                  <p className="text-xs text-white/50">Email cannot be changed</p>
                 </div>
 
                 {/* Phone */}
@@ -183,14 +332,25 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
               <div className="w-full space-y-3 pt-4 border-t border-white/10">
                 <button
                   type="submit"
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
                 >
-                  Save Changes
+                  {isLoading ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors font-medium"
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 disabled:bg-white/10 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
                 >
                   Cancel
                 </button>

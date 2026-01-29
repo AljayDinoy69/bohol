@@ -243,14 +243,23 @@ export async function PUT(request: NextRequest) {
       { returnDocument: 'after' }
     );
 
-    if (!result || !result.value) {
-      console.log('[API] Site not found with ID:', id);
-      return NextResponse.json(
-        { success: false, error: 'Site not found', code: 'SITE_NOT_FOUND' },
-        { status: 404 }
-      );
-    }
+    console.log('[API] Update result:', JSON.stringify(result, null, 2));
 
+    // Handle different MongoDB driver return formats
+    let updatedSite = result?.value || result;
+    
+    if (!updatedSite) {
+      // Fallback: fetch the document to verify it was updated
+      updatedSite = await sitesCollection.findOne({ _id: new ObjectId(id) });
+      if (!updatedSite) {
+        console.log('[API] Site not found with ID:', id);
+        return NextResponse.json(
+          { success: false, error: 'Site not found', code: 'SITE_NOT_FOUND' },
+          { status: 404 }
+        );
+      }
+    }
+    
     // Log activity
     await logActivity(
       db,
@@ -261,10 +270,10 @@ export async function PUT(request: NextRequest) {
       id
     );
 
-    console.log('[API] Site updated successfully:', result.value._id);
+    console.log('[API] Site updated successfully:', updatedSite._id);
     return NextResponse.json({
       success: true,
-      data: serializeSite(result.value)
+      data: serializeSite(updatedSite)
     });
   } catch (error) {
     console.error('Error updating site:', error);

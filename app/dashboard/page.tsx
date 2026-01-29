@@ -335,8 +335,8 @@ export default function DashboardPage() {
                   <div className="rounded-xl border border-white/10 bg-black/40 p-3">
                     <div className="text-xs text-white/60">Uptime</div>
                     <div className="mt-1 text-lg font-semibold text-white">
-                      {analytics?.averageSignalStrength ? 
-                        `${Math.round(analytics.averageSignalStrength)}%` : '92%'}
+                      {analytics?.totalSites ? 
+                        `${Math.round((analytics.activeSites / analytics.totalSites) * 100)}%` : '0%'}
                     </div>
                   </div>
                 </div>

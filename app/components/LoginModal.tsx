@@ -136,7 +136,7 @@ export default function LoginModal({
               }
 
               // Login with role
-              login(authenticatedUser.email, authenticatedUser.role, authenticatedUser.name);
+              login(authenticatedUser.email, authenticatedUser.role, { name: authenticatedUser.name });
               setIsLoading(false);
               onClose();
               router.push("/dashboard");

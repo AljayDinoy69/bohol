@@ -8,11 +8,17 @@ import ProfileModal from "./ProfileModal";
 import { useAuth } from "../hooks/useAuth";
 
 export default function SidebarAndNavbar({ activePage, children }: { activePage: string; children: React.ReactNode }) {
-  const { isAdmin, permissions } = useAuth();
+  const { user, isAdmin, permissions } = useAuth();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const openProfileModal = () => setIsProfileModalOpen(true);
   const closeProfileModal = () => setIsProfileModalOpen(false);
+
+  // Get dynamic user display info
+  const firstName = user?.firstName || "Admin";
+  const lastName = user?.lastName || "User";
+  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const avatar = user?.avatar || null;
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: (
@@ -58,14 +64,29 @@ export default function SidebarAndNavbar({ activePage, children }: { activePage:
             </nav>
             <div className="border-t border-white/8 p-4">
               <div className="flex items-center gap-3">
+                {avatar ? (
+                  <img
+                    src={avatar}
+                    alt="Avatar"
+                    className="h-10 w-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={openProfileModal}
+                    title="Click to view profile"
+                  />
+                ) : (
+                  <div 
+                    className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-semibold cursor-pointer hover:bg-blue-700 transition-colors text-white text-sm"
+                    onClick={openProfileModal}
+                    title="Click to view profile"
+                  >
+                    {initials}
+                  </div>
+                )}
                 <div 
-                  className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-semibold cursor-pointer hover:bg-blue-700 transition-colors"
+                  className="flex-1 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={openProfileModal}
+                  title="Click to view profile"
                 >
-                  U
-                </div>
-                <div>
-                  <div className="text-sm font-medium">Admin User</div>
+                  <div className="text-sm font-medium text-white">{firstName} {lastName}</div>
                   <div className="text-xs text-green-400">● Online</div>
                 </div>
               </div>

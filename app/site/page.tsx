@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import SidebarAndNavbar from "../components/SidebarAndNavbar";
 import { useAuth } from "../hooks/useAuth";
 import { usePersonnel } from "../hooks/usePersonnel";
+import { useToast } from "../hooks/useToast";
 
 const boholTowns = [
   // First District
@@ -66,6 +67,7 @@ const boholTowns = [
 export default function SitePage() {
   const { permissions } = useAuth();
   const { personnel, loading: personnelLoading } = usePersonnel();
+  const { addToast } = useToast();
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -243,15 +245,19 @@ export default function SitePage() {
         // Reload sites from database after a short delay
         setTimeout(() => loadSitesFromDatabase(), 300);
 
+        // Show success notification
+        addToast(`Site "${formData.siteName}" updated successfully!`, 'success');
+
         // Close modal
         setShowEditModal(false);
         setSelectedSite(null);
       } else {
-        alert('Failed to update site in database: ' + (data.error || 'Unknown error') + (data.details ? ' - ' + data.details : ''));
+        // Show error notification
+        addToast(`Failed to update site: ${data.error || 'Unknown error'}`, 'error');
       }
     }).catch(err => {
       console.error('Error updating site:', err);
-      alert('Error updating site: ' + err.message);
+      addToast(`Error updating site: ${err.message}`, 'error');
     });
   };
 
@@ -267,15 +273,20 @@ export default function SitePage() {
         localStorage.removeItem("bohol_sites");
         // Reload sites from database after a short delay
         setTimeout(() => loadSitesFromDatabase(), 300);
+        
+        // Show success notification
+        addToast(`Site "${selectedSite.name}" deleted successfully!`, 'success');
+        
         // Close modal
         setShowDeleteModal(false);
         setSelectedSite(null);
       } else {
-        alert('Failed to delete site from database: ' + (data.error || 'Unknown error'));
+        // Show error notification
+        addToast(`Failed to delete site: ${data.error || 'Unknown error'}`, 'error');
       }
     }).catch(err => {
       console.error('Error deleting site:', err);
-      alert('Error deleting site: ' + err.message);
+      addToast(`Error deleting site: ${err.message}`, 'error');
     });
   };
 
@@ -329,16 +340,21 @@ export default function SitePage() {
       if (data.success) {
         // Reload sites from database after a short delay
         setTimeout(() => loadSitesFromDatabase(), 300);
+        
+        // Show success notification
+        addToast(`Site status updated successfully!`, 'success');
+        
         // Close modal
         setShowStatusModal(false);
         setSelectedSite(null);
         setFormData({ siteName: "", town: "", assignedPersonnel: "", status: "active" });
       } else {
-        alert('Failed to update site status in database: ' + (data.error || 'Unknown error') + (data.details ? ' - ' + data.details : ''));
+        // Show error notification
+        addToast(`Failed to update site status: ${data.error || 'Unknown error'}`, 'error');
       }
     }).catch(err => {
       console.error('Error updating site status:', err);
-      alert('Error updating site status: ' + err.message);
+      addToast(`Error updating site status: ${err.message}`, 'error');
     });
   };
 
@@ -407,15 +423,20 @@ export default function SitePage() {
         setTimeout(() => {
           loadSitesFromDatabase().then(() => {
             console.log('[Client] Sites reloaded');
+            
+            // Show success notification
+            addToast(`Site "${formData.siteName}" created successfully!`, 'success');
+            
             handleCloseModal();
           });
         }, 300);
       } else {
-        alert('Failed to create site: ' + (data.error || 'Unknown error') + (data.details ? ' - ' + data.details : ''));
+        // Show error notification
+        addToast(`Failed to create site: ${data.error || 'Unknown error'}`, 'error');
       }
     }).catch(err => {
       console.error('[Client] Error creating site:', err);
-      alert('Error creating site: ' + err.message);
+      addToast(`Error creating site: ${err.message}`, 'error');
     });
   };
 
