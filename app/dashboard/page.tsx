@@ -8,69 +8,15 @@ import SidebarAndNavbar from "../components/SidebarAndNavbar";
 import { useAuth } from "../hooks/useAuth";
 import { useSites, useAnalytics } from "../hooks/useDynamicData";
 import { useRealTimeData } from "../hooks/useRealTime";
+import { useBoholTowns } from "../hooks/useBoholTowns";
 import { exportMapToWord } from "../lib/exportMap";
-
-const boholTowns = [
-  // First District
-  { name: "Tagbilaran City", lat: 9.6399, lng: 123.8543 },
-  { name: "Alburquerque", lat: 9.6081, lng: 123.9575 },
-  { name: "Antequera", lat: 9.7828, lng: 123.8997 },
-  { name: "Baclayon", lat: 9.6222, lng: 123.9111 },
-  { name: "Balilihan", lat: 9.7547, lng: 123.9694 },
-  { name: "Calape", lat: 9.8911, lng: 123.8825 },
-  { name: "Catigbian", lat: 9.8294, lng: 124.0225 },
-  { name: "Corella", lat: 9.6869, lng: 123.9222 },
-  { name: "Cortes", lat: 9.6911, lng: 123.8825 },
-  { name: "Dauis", lat: 9.6283, lng: 123.8689 },
-  { name: "Loon", lat: 9.7997, lng: 123.8017 },
-  { name: "Maribojoc", lat: 9.7431, lng: 123.8422 },
-  { name: "Panglao", lat: 9.5806, lng: 123.7486 },
-  { name: "Sikatuna", lat: 9.6914, lng: 123.9725 },
-  { name: "Tubigon", lat: 9.9514, lng: 123.9639 },
-
-  // Second District
-  { name: "Bien Unido", lat: 10.1692, lng: 124.3311 },
-  { name: "Buenavista", lat: 10.0822, lng: 124.1106 },
-  { name: "Clarin", lat: 9.9614, lng: 124.0253 },
-  { name: "Dagohoy", lat: 9.9239, lng: 124.2697 },
-  { name: "Danao", lat: 10.0019, lng: 124.2014 },
-  { name: "Getafe", lat: 10.1472, lng: 124.1528 },
-  { name: "Inabanga", lat: 10.0039, lng: 124.0725 },
-  { name: "Pres. Carlos P. Garcia", lat: 10.1206, lng: 124.4842 },
-  { name: "Sagbayan", lat: 9.9208, lng: 124.1086 },
-  { name: "San Isidro", lat: 9.8894, lng: 123.9931 },
-  { name: "San Miguel", lat: 9.9889, lng: 124.3456 },
-  { name: "Talibon", lat: 10.1489, lng: 124.3325 },
-  { name: "Trinidad", lat: 10.0889, lng: 124.3344 },
-  { name: "Ubay", lat: 10.0572, lng: 124.4719 },
-
-  // Third District
-  { name: "Alicia", lat: 9.8978, lng: 124.4419 },
-  { name: "Anda", lat: 9.7444, lng: 124.5761 },
-  { name: "Batuan", lat: 9.7864, lng: 124.1503 },
-  { name: "Bilar", lat: 9.7153, lng: 124.1136 },
-  { name: "Candijay", lat: 9.8411, lng: 124.5458 },
-  { name: "Carmen", lat: 9.8214, lng: 124.1950 },
-  { name: "Dimiao", lat: 9.6053, lng: 124.1683 },
-  { name: "Duero", lat: 9.6881, lng: 124.3700 },
-  { name: "Garcia Hernandez", lat: 9.6136, lng: 124.2344 },
-  { name: "Guindulman", lat: 9.7522, lng: 124.4858 },
-  { name: "Jagna", lat: 9.6517, lng: 124.3683 },
-  { name: "Lila", lat: 9.5911, lng: 124.0989 },
-  { name: "Loay", lat: 9.6031, lng: 124.0117 },
-  { name: "Loboc", lat: 9.6414, lng: 124.0353 },
-  { name: "Mabini", lat: 9.8631, lng: 124.5222 },
-  { name: "Pilar", lat: 9.8169, lng: 124.3353 },
-  { name: "Sevilla", lat: 9.7156, lng: 124.0531 },
-  { name: "Sierra Bullones", lat: 9.7844, lng: 124.2881 },
-  { name: "Valencia", lat: 9.6097, lng: 124.2036 }
-];
 
 export default function DashboardPage() {
   const { user, isAdmin, isPersonnel, permissions } = useAuth();
   const { data: sites, loading: sitesLoading } = useSites();
   const { data: analytics, loading: analyticsLoading } = useAnalytics();
   const { data: realTimeData, isConnected, error, refresh } = useRealTimeData();
+  const { towns, loading: townsLoading } = useBoholTowns();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [searchedTown, setSearchedTown] = useState<[number, number] | null>(null);
@@ -102,7 +48,7 @@ export default function DashboardPage() {
       return;
     }
     
-    const town = boholTowns.find((t) => t.name.toLowerCase() === searchQuery.toLowerCase());
+    const town = towns.find((t: any) => t.name.toLowerCase() === searchQuery.toLowerCase());
     
     if (town && mapActions) {
       // Center the map on the searched town with appropriate zoom
@@ -125,10 +71,10 @@ export default function DashboardPage() {
 
   // Filter towns based on first letter
   const filteredTowns = searchQuery.trim().length > 0 
-    ? boholTowns.filter(town => town.name.toLowerCase().startsWith(searchQuery.toLowerCase()))
+    ? towns.filter((town: any) => town.name.toLowerCase().startsWith(searchQuery.toLowerCase()))
     : [];
 
-  const handleTownSelect = (town: typeof boholTowns[0]) => {
+  const handleTownSelect = (town: any) => {
     setSearchQuery(town.name);
     if (mapActions) {
       mapActions.setView([town.lat, town.lng], 12);
@@ -235,9 +181,9 @@ export default function DashboardPage() {
                 {showDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-black/90 border border-white/10 rounded-xl backdrop-blur-lg z-50 max-h-80 overflow-y-auto">
                     <div className="grid grid-cols-5 gap-1 p-2">
-                      {filteredTowns.map((town) => (
+                      {filteredTowns.map((town: any) => (
                         <button
-                          key={town.name}
+                          key={town._id || town.name}
                           type="button"
                           onClick={() => handleTownSelect(town)}
                           className="text-xs text-white/80 hover:bg-white/10 hover:text-white px-2 py-1 rounded transition-colors text-left"

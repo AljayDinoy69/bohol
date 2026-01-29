@@ -53,9 +53,9 @@ export default function ActivitySummary() {
       {/* Recent Activities */}
       <div className="border-t border-white/5 pt-4">
         <h4 className="text-xs font-semibold text-white/70 mb-3">Recent Activities</h4>
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30">
           {stats.recent.length > 0 ? (
-            stats.recent.map((activity, index) => (
+            stats.recent.slice(0, 10).map((activity, index) => (
               <motion.div
                 key={`${activity._id || index}`}
                 initial={{ opacity: 0, x: -10 }}
@@ -82,6 +82,11 @@ export default function ActivitySummary() {
             </div>
           )}
         </div>
+        {stats.recent.length > 10 && (
+          <div className="text-xs text-white/40 mt-2 text-center">
+            Showing 10 of {stats.recent.length} activities
+          </div>
+        )}
       </div>
     </motion.div>
   );

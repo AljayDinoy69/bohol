@@ -94,26 +94,30 @@ function DynamicMarkers({ sites }: { sites?: any[] }) {
       try {
         // If sites are provided as prop, use them
         if (sites && sites.length > 0) {
-          const markers: MapMarker[] = sites.map((site: any, index: number) => ({
-            id: `site-${site._id || site.id}-${site.name?.replace(/\s+/g, '-') || 'unknown'}-${index}`,
-            position: [site.lat, site.lng] as [number, number],
-            kind: site.status === "Active" ? "active" : 
-                  site.status === "Warning" ? "unstable" : "unavailable" as MarkerKind,
-            site: site
-          }));
-          setDynamicMarkers(markers);
-        } else {
-          // Fallback to fetching from API if no sites prop provided
-          const response = await fetch('/api/sites');
-          const data = await response.json();
-          if (data.success && data.data) {
-            const markers: MapMarker[] = data.data.map((site: any, index: number) => ({
+          const markers: MapMarker[] = sites
+            .filter((site: any) => site.lat != null && site.lng != null && !isNaN(site.lat) && !isNaN(site.lng))
+            .map((site: any, index: number) => ({
               id: `site-${site._id || site.id}-${site.name?.replace(/\s+/g, '-') || 'unknown'}-${index}`,
               position: [site.lat, site.lng] as [number, number],
               kind: site.status === "Active" ? "active" : 
                     site.status === "Warning" ? "unstable" : "unavailable" as MarkerKind,
               site: site
             }));
+          setDynamicMarkers(markers);
+        } else {
+          // Fallback to fetching from API if no sites prop provided
+          const response = await fetch('/api/sites');
+          const data = await response.json();
+          if (data.success && data.data) {
+            const markers: MapMarker[] = data.data
+              .filter((site: any) => site.lat != null && site.lng != null && !isNaN(site.lat) && !isNaN(site.lng))
+              .map((site: any, index: number) => ({
+                id: `site-${site._id || site.id}-${site.name?.replace(/\s+/g, '-') || 'unknown'}-${index}`,
+                position: [site.lat, site.lng] as [number, number],
+                kind: site.status === "Active" ? "active" : 
+                      site.status === "Warning" ? "unstable" : "unavailable" as MarkerKind,
+                site: site
+              }));
             setDynamicMarkers(markers);
           }
         }
@@ -187,12 +191,16 @@ function DynamicMarkers({ sites }: { sites?: any[] }) {
 
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-white/70">Latitude:</span>
-                  <span className="text-right text-white/80">{marker.position[0].toFixed(6)}</span>
+                  <span className="text-right text-white/80">
+                    {marker.position && marker.position[0] ? marker.position[0].toFixed(6) : 'N/A'}
+                  </span>
                 </div>
 
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-white/70">Longitude:</span>
-                  <span className="text-right text-white/80">{marker.position[1].toFixed(6)}</span>
+                  <span className="text-right text-white/80">
+                    {marker.position && marker.position[1] ? marker.position[1].toFixed(6) : 'N/A'}
+                  </span>
                 </div>
 
                 {marker.site?.lastUpdate && (

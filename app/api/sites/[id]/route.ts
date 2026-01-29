@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 export async function PUT(
   request: NextRequest,
@@ -13,20 +14,22 @@ export async function PUT(
     const db = client.db('site1');
     const sitesCollection = db.collection('sites');
     
-    const updateData = {
-      name: body.name,
-      location: body.location,
-      lat: body.lat,
-      lng: body.lng,
-      status: body.status,
-      signal: body.signal,
-      assignedPersonnel: body.assignedPersonnel,
-      lastCheck: body.lastCheck,
+    const updateData: any = {
       lastUpdated: new Date().toISOString()
     };
     
+    // Only include fields that are provided in the request
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.location !== undefined) updateData.location = body.location;
+    if (body.lat !== undefined) updateData.lat = body.lat;
+    if (body.lng !== undefined) updateData.lng = body.lng;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.signal !== undefined) updateData.signal = body.signal;
+    if (body.assignedPersonnel !== undefined) updateData.assignedPersonnel = body.assignedPersonnel;
+    if (body.lastCheck !== undefined) updateData.lastCheck = body.lastCheck;
+    
     const result = await sitesCollection.updateOne(
-      { id: id },
+      { _id: new ObjectId(id) },
       { $set: updateData }
     );
     
@@ -62,7 +65,7 @@ export async function DELETE(
     const db = client.db('site1');
     const sitesCollection = db.collection('sites');
     
-    const result = await sitesCollection.deleteOne({ id: id });
+    const result = await sitesCollection.deleteOne({ _id: new ObjectId(id) });
     
     if (result.deletedCount === 0) {
       return NextResponse.json(

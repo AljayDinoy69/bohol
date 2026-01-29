@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Plus, Edit, Trash2, MapPin, X } from "lucide-react";
+import { Users, Search, Plus, Edit, Trash2, MapPin, X, Minus } from "lucide-react";
 import { motion } from "framer-motion";
 import SidebarAndNavbar from "../components/SidebarAndNavbar";
 import { useAuth } from "../hooks/useAuth";
@@ -101,6 +101,45 @@ export default function PersonnelPage() {
       alert('Failed to delete personnel. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Function to remove site assignment from personnel
+  const removeSiteAssignment = async (siteId: string, personnelName: string) => {
+    try {
+      const response = await fetch(`/api/sites/${siteId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assignedPersonnel: '' // Clear the assignment
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh sites to update the UI
+        const loadSites = async () => {
+          try {
+            const response = await fetch('/api/sites');
+            const data = await response.json();
+            if (data.success && data.data) {
+              setSites(data.data);
+            }
+          } catch (error) {
+            console.error('Error loading sites:', error);
+          }
+        };
+        loadSites();
+      } else {
+        console.error('Failed to remove site assignment:', data.error);
+        alert('Failed to remove site assignment. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error removing site assignment:', error);
+      alert('Error removing site assignment. Please try again.');
     }
   };
 
@@ -585,6 +624,37 @@ export default function PersonnelPage() {
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
+                </div>
+
+                {/* Assigned Sites Section */}
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Assigned Sites</label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {selectedPersonnel && getAssignedSites(selectedPersonnel.name).length > 0 ? (
+                      getAssignedSites(selectedPersonnel.name).map((site) => (
+                        <div key={site._id} className="flex items-center justify-between p-2 bg-black/20 border border-white/10 rounded">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3 w-3 text-blue-400" />
+                            <span className="text-xs text-white/80">{site.name}</span>
+                            <span className="text-xs text-white/50">({site.locationName})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSiteAssignment(site._id, selectedPersonnel.name)}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                            title="Remove site assignment"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-xs text-white/40 italic">No sites assigned to this personnel</div>
+                    )}
+                  </div>
+                  <p className="text-xs text-white/50 mt-1">
+                    Remove sites by clicking the red minus button. Sites can be reassigned from the Sites management page.
+                  </p>
                 </div>
               </motion.div>
               

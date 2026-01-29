@@ -119,7 +119,7 @@ export default function SitePage() {
     }
   }, [showAddModal, showEditModal, showDeleteModal, showStatusModal]);
 
-  const filtered = sites.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = sites.filter(s => s.name && s.name.toLowerCase().includes(search.toLowerCase()));
 
   // Show loading state only for initial load, not for modal actions
   if (personnelLoading) {
