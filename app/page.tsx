@@ -1,9 +1,23 @@
+"use client";
+
 import Image from "next/image";
 import HomeMapPanel from "./components/HomeMapPanel";
 import GetStartedWithLogin from "./components/GetStartedWithLogin";
 import ThemeToggle from "./components/ThemeToggle";
+import { useConfig, useAnalytics } from "./hooks/useDynamicData";
 
 export default function Home() {
+  const { data: config, loading: configLoading } = useConfig();
+  const { data: analytics, loading: analyticsLoading } = useAnalytics();
+
+  if (configLoading) {
+    return (
+      <div className="theme-scope relative min-h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center">
+        <div className="text-white/70">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="theme-scope relative min-h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
       <div className="pointer-events-none absolute inset-0">
@@ -16,10 +30,10 @@ export default function Home() {
         <header className="relative z-50 flex items-center justify-between gap-6 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 backdrop-blur-xl md:px-8">
               <div className="flex items-center gap-2">
                 <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                  <Image src="/wifi.jpg" alt="Bohol" fill className="object-cover" priority />
+                  <Image src={config?.site?.logo || "/wifi.jpg"} alt={config?.site?.title || "Bohol"} fill className="object-cover" priority />
                 </div>
                 <div className="text-sm font-semibold tracking-wide text-white/90">
-                  Bohol Site Monitoring
+                  {config?.site?.title || "Bohol Site Monitoring"}
                 </div>
               </div>
 
@@ -34,10 +48,9 @@ export default function Home() {
                       <div className="mb-3 text-xs font-semibold tracking-wide text-white/50">About</div>
 
                       <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                        <div className="text-sm font-semibold text-white/90">Bohol Site Monitoring</div>
+                        <div className="text-sm font-semibold text-white/90">{config?.site?.title || "Bohol Site Monitoring"}</div>
                         <div className="mt-1 text-xs leading-5 text-white/60">
-                          A monitoring dashboard that visualizes signal status across key areas of Bohol for faster
-                          situational awareness.
+                          {config?.site?.description || "A monitoring dashboard that visualizes signal status across key areas of Bohol."}
                         </div>
                       </div>
 
@@ -45,25 +58,25 @@ export default function Home() {
                         <a href="#" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition-colors hover:bg-white/[0.06]">
                           <div className="text-sm font-semibold text-white/90">Mission</div>
                           <div className="mt-0.5 text-xs leading-5 text-white/60">
-                            Improve coverage visibility and response.
+                            {config?.about?.mission || "Improve coverage visibility and response."}
                           </div>
                         </a>
                         <a href="#" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition-colors hover:bg-white/[0.06]">
                           <div className="text-sm font-semibold text-white/90">Data Sources</div>
                           <div className="mt-0.5 text-xs leading-5 text-white/60">
-                            Sites, sensors, and field reports.
+                            {config?.about?.dataSources || "Sites, sensors, and field reports."}
                           </div>
                         </a>
                         <a href="#" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition-colors hover:bg-white/[0.06]">
                           <div className="text-sm font-semibold text-white/90">Team</div>
                           <div className="mt-0.5 text-xs leading-5 text-white/60">
-                            Built by the local monitoring group.
+                            {config?.about?.team || "Built by the local monitoring group."}
                           </div>
                         </a>
                         <a href="#" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition-colors hover:bg-white/[0.06]">
-                          <div className="text-sm font-semibold text-white/90">Changelog</div>
+                          <div className="text-sm font-semibold text-white/90">Version</div>
                           <div className="mt-0.5 text-xs leading-5 text-white/60">
-                            Latest updates and fixes.
+                            {config?.site?.version || "1.0.0"}
                           </div>
                         </a>
                       </div>
@@ -126,20 +139,20 @@ export default function Home() {
                       <div className="grid gap-3">
                         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
                           <div className="text-xs text-white/50">Email</div>
-                          <a href="#" className="mt-0.5 block text-sm font-semibold text-white/85 hover:text-white">
-                            support@boholsignalmap.local
+                          <a href={`mailto:${config?.contact?.email || 'support@boholsignalmap.local'}`} className="mt-0.5 block text-sm font-semibold text-white/85 hover:text-white">
+                            {config?.contact?.email || 'support@boholsignalmap.local'}
                           </a>
                         </div>
                         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
                           <div className="text-xs text-white/50">Phone</div>
-                          <a href="#" className="mt-0.5 block text-sm font-semibold text-white/85 hover:text-white">
-                            +63 900 000 0000
+                          <a href={`tel:${config?.contact?.phone || '+63900000000'}`} className="mt-0.5 block text-sm font-semibold text-white/85 hover:text-white">
+                            {config?.contact?.phone || '+63 900 000 0000'}
                           </a>
                         </div>
                         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
                           <div className="text-xs text-white/50">Office</div>
                           <div className="mt-0.5 text-sm font-semibold text-white/85">
-                            Tagbilaran City, Bohol
+                            {config?.contact?.office || 'Tagbilaran City, Bohol'}
                           </div>
                         </div>
                       </div>
@@ -147,13 +160,13 @@ export default function Home() {
                       <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
                         <div className="text-xs text-white/45">Social</div>
                         <div className="flex items-center gap-3">
-                          <a href="#" className="text-xs font-semibold text-white/80 transition-colors hover:text-white">
+                          <a href={config?.contact?.social?.facebook || "#"} className="text-xs font-semibold text-white/80 transition-colors hover:text-white">
                             Facebook
                           </a>
-                          <a href="#" className="text-xs font-semibold text-white/80 transition-colors hover:text-white">
+                          <a href={config?.contact?.social?.youtube || "#"} className="text-xs font-semibold text-white/80 transition-colors hover:text-white">
                             YouTube
                           </a>
-                          <a href="#" className="text-xs font-semibold text-white/80 transition-colors hover:text-white">
+                          <a href={config?.contact?.social?.instagram || "#"} className="text-xs font-semibold text-white/80 transition-colors hover:text-white">
                             Instagram
                           </a>
                         </div>
@@ -203,20 +216,22 @@ export default function Home() {
                 <p className="mt-4 max-w-xl text-pretty text-sm leading-6 text-white/65 sm:text-base">
                   Curated and intelligent signal location monitoring across key areas of Bohol.
                 </p>
-                <p className="mt-2 text-xs text-white/45 sm:text-sm">2023-10-23 14:30:45</p>
+                <p className="mt-2 text-xs text-white/45 sm:text-sm">
+                    Last updated: {analytics?.lastUpdated ? new Date(analytics.lastUpdated).toLocaleString() : 'Loading...'}
+                  </p>
 
                 <div className="mt-6 flex flex-wrap items-center gap-6 text-xs text-white/70">
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.16)]" />
-                    <span>Active</span>
+                    <span>Active ({analytics?.activeSites || 0})</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full bg-yellow-300 shadow-[0_0_0_3px_rgba(253,224,71,0.14)]" />
-                    <span>Unstable</span>
+                    <span>Unstable ({analytics?.unstableSites || 0})</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.14)]" />
-                    <span>Unavailable</span>
+                    <span>Unavailable ({analytics?.unavailableSites || 0})</span>
                   </div>
                 </div>
 
@@ -230,7 +245,7 @@ export default function Home() {
 
                 <div className="mt-5 flex items-center justify-end gap-3 text-white/60">
                   <a
-                    href="#"
+                    href={config?.contact?.social?.instagram || "#"}
                     className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 transition-colors hover:bg-white/10 hover:text-white"
                     aria-label="Instagram"
                   >
@@ -249,7 +264,7 @@ export default function Home() {
                     </svg>
                   </a>
                   <a
-                    href="#"
+                    href={config?.contact?.social?.youtube || "#"}
                     className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 transition-colors hover:bg-white/10 hover:text-white"
                     aria-label="YouTube"
                   >
@@ -263,7 +278,7 @@ export default function Home() {
                     </svg>
                   </a>
                   <a
-                    href="#"
+                    href={config?.contact?.social?.facebook || "#"}
                     className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 transition-colors hover:bg-white/10 hover:text-white"
                     aria-label="Facebook"
                   >

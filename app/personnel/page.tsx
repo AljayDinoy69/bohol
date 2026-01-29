@@ -5,17 +5,17 @@ import { Users, Search, Plus, Edit, Trash2, MapPin, X } from "lucide-react";
 import { motion } from "framer-motion";
 import SidebarAndNavbar from "../components/SidebarAndNavbar";
 import { useAuth } from "../hooks/useAuth";
+import { usePersonnel, Personnel } from "../hooks/usePersonnel";
 
 export default function PersonnelPage() {
   const { permissions } = useAuth();
+  const { personnel, loading, error, createPersonnel, updatePersonnel, deletePersonnel, refetch } = usePersonnel();
   const [search, setSearch] = useState("");
-  const [personnelAssignments, setPersonnelAssignments] = useState<{[key: string]: any[]}>({});
-  const [personnel, setPersonnel] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedPersonnel, setSelectedPersonnel] = useState<any>(null);
+  const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -26,26 +26,9 @@ export default function PersonnelPage() {
 
   const filtered = personnel.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
-  // Function to check if assigned site still exists and get display info
-  const getSiteDisplay = (assignments: any[]) => {
-    return assignments.map(assignment => {
-      const siteExists = sites.some(site => site.id === assignment.siteId);
-      if (siteExists) {
-        return {
-          ...assignment,
-          exists: true,
-          displayName: assignment.siteName,
-          location: assignment.location
-        };
-      } else {
-        return {
-          ...assignment,
-          exists: false,
-          displayName: "No assigned site",
-          location: "Site deleted"
-        };
-      }
-    });
+  // Function to get assigned sites for a personnel from sites collection
+  const getAssignedSites = (personnelName: string) => {
+    return sites.filter(site => site.assignedPersonnel === personnelName);
   };
 
   const handleOpenModal = () => {
@@ -71,137 +54,91 @@ export default function PersonnelPage() {
     });
   };
 
-  const handleEdit = (personnel: any) => {
-    setIsLoading(true);
-    setSelectedPersonnel(personnel);
+  const handleEdit = (person: Personnel) => {
+    setSelectedPersonnel(person);
     setFormData({
-      name: personnel.name,
-      role: personnel.role,
-      email: personnel.email,
-      status: personnel.status
+      name: person.name,
+      role: person.role,
+      email: person.email,
+      status: person.status
     });
-    // Simulate loading delay
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowEditModal(true);
-    }, 800);
+    setShowEditModal(true);
   };
 
-  const handleDelete = (personnel: any) => {
-    setIsLoading(true);
-    setSelectedPersonnel(personnel);
-    // Simulate loading delay
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowDeleteModal(true);
-    }, 800);
+  const handleDelete = (person: Personnel) => {
+    setSelectedPersonnel(person);
+    setShowDeleteModal(true);
   };
 
-  const handleEditSubmit = () => {
-    if (!formData.name || !formData.role || !formData.email || !selectedPersonnel) {
-      return;
-    }
-
-    // Update personnel
-    const updatedPersonnel = personnel.map(p => 
-      p.id === selectedPersonnel.id 
-        ? { ...p, ...formData }
-        : p
-    );
-    
-    setPersonnel(updatedPersonnel);
-    localStorage.setItem("personnel", JSON.stringify(updatedPersonnel));
-    
-    // Dispatch event to update pages immediately
-    window.dispatchEvent(new Event('personnel_updated'));
-    
-    // Close modal
-    setShowEditModal(false);
-    setSelectedPersonnel(null);
-    setFormData({ name: "", role: "", email: "", status: "Active" });
-  };
-
-  const handleDeleteConfirm = () => {
+  const handleEditConfirm = async () => {
     if (!selectedPersonnel) return;
 
-    // Delete from localStorage
-    const updatedPersonnel = personnel.filter(p => p.id !== selectedPersonnel.id);
-    setPersonnel(updatedPersonnel);
-    localStorage.setItem("personnel", JSON.stringify(updatedPersonnel));
-    
-    // Remove from personnel assignments
-    const personnelAssignments = JSON.parse(localStorage.getItem("personnel_assignments") || "{}");
-    delete personnelAssignments[selectedPersonnel.name];
-    localStorage.setItem("personnel_assignments", JSON.stringify(personnelAssignments));
-    
-    // Dispatch events to update pages immediately
-    window.dispatchEvent(new Event('personnel_updated'));
-    window.dispatchEvent(new Event('personnel_assignments_updated'));
-
-    // Close modal
-    setShowDeleteModal(false);
-    setSelectedPersonnel(null);
+    try {
+      setIsLoading(true);
+      await updatePersonnel(selectedPersonnel._id, formData);
+      setShowEditModal(false);
+      setSelectedPersonnel(null);
+    } catch (error) {
+      console.error('Failed to update personnel:', error);
+      // Show user-friendly error message
+      alert('Failed to update personnel. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddPersonnel = () => {
-    if (formData.name && formData.role && formData.email) {
-      const newPersonnel = {
-        id: Date.now().toString(),
-        ...formData
-      };
-      
-      const updatedPersonnel = [...personnel, newPersonnel];
-      setPersonnel(updatedPersonnel);
-      localStorage.setItem("personnel", JSON.stringify(updatedPersonnel));
-      
-      // Dispatch event to update pages immediately
-      window.dispatchEvent(new Event('personnel_updated'));
-      
-      // Reset form and close modal
-      setFormData({ name: "", role: "", email: "", status: "Active" });
+  const handleDeleteConfirm = async () => {
+    if (!selectedPersonnel) return;
+
+    try {
+      setIsLoading(true);
+      await deletePersonnel(selectedPersonnel._id);
+      setShowDeleteModal(false);
+      setSelectedPersonnel(null);
+    } catch (error) {
+      console.error('Failed to delete personnel:', error);
+      // Show user-friendly error message
+      alert('Failed to delete personnel. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddPersonnel = async () => {
+    try {
+      setIsLoading(true);
+      await createPersonnel(formData);
       setIsModalOpen(false);
+      setFormData({ name: "", role: "", email: "", status: "Active" });
+    } catch (error) {
+      console.error('Failed to create personnel:', error);
+      // Show user-friendly error message
+      alert('Failed to create personnel. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    // Load personnel assignments from localStorage
-    const loadAssignments = () => {
-      const assignments = JSON.parse(localStorage.getItem("personnel_assignments") || "{}");
-      setPersonnelAssignments(assignments);
+    // Load sites from database API
+    const loadSites = async () => {
+      try {
+        const response = await fetch('/api/sites');
+        const data = await response.json();
+        if (data.success && data.data) {
+          setSites(data.data);
+        }
+      } catch (error) {
+        console.error('Error loading sites:', error);
+      }
     };
 
-    // Load personnel from localStorage
-    const loadPersonnel = () => {
-      const storedPersonnel = JSON.parse(localStorage.getItem("personnel") || "[]");
-      setPersonnel(storedPersonnel);
-    };
-
-    // Load sites from localStorage
-    const loadSites = () => {
-      const storedSites = JSON.parse(localStorage.getItem("bohol_sites") || "[]");
-      setSites(storedSites);
-    };
-
-    loadAssignments();
-    loadPersonnel();
     loadSites();
     
-    // Listen for assignment updates
-    const handleAssignmentUpdate = () => {
-      loadAssignments();
-      loadPersonnel();
-      loadSites();
-    };
+    // Refresh sites every 10 seconds to keep in sync
+    const interval = setInterval(loadSites, 10000);
     
-    window.addEventListener('personnel_assignments_updated', handleAssignmentUpdate);
-    window.addEventListener('bohol_sites_updated', handleAssignmentUpdate);
-    window.addEventListener('storage', handleAssignmentUpdate);
-    
-    return () => {
-      window.removeEventListener('personnel_assignments_updated', handleAssignmentUpdate);
-      window.removeEventListener('bohol_sites_updated', handleAssignmentUpdate);
-      window.removeEventListener('storage', handleAssignmentUpdate);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -225,8 +162,9 @@ export default function PersonnelPage() {
               className="flex items-center justify-between border-b border-white/10 bg-black/20 px-6 py-4 text-white backdrop-blur-lg"
             >
               <div>
-                <div className="text-xs font-medium text-white/60">Personnel</div>
-                <div className="text-xl font-semibold tracking-tight">Team Members</div>
+                <div className="text-xl font-semibold tracking-tight">Manage Personnel</div>
+                <div className="text-xs font-medium text-white/60">Manage personnel records, roles, and assignments.</div>
+                
               </div>
             </motion.header>
 
@@ -306,7 +244,7 @@ export default function PersonnelPage() {
                       {filtered.length > 0 ? (
                         filtered.map((p, index) => (
                           <motion.tr
-                            key={p.id}
+                            key={p._id}
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.4, delay: 0.5 + index * 0.05 }}
@@ -327,14 +265,14 @@ export default function PersonnelPage() {
                             </td>
                             <td className="px-4 py-3">
                               <div className="space-y-1">
-                                {personnelAssignments[p.name]?.length > 0 ? (
-                                  getSiteDisplay(personnelAssignments[p.name]).map((site, index) => (
-                                    <div key={index} className="flex items-center gap-1 text-xs">
-                                      <MapPin className={`h-3 w-3 ${site.exists ? "text-blue-400" : "text-rose-400"}`} />
-                                      <span className={site.exists ? "text-white/70" : "text-rose-400"}>
-                                        {site.displayName}
+                                {getAssignedSites(p.name).length > 0 ? (
+                                  getAssignedSites(p.name).map((site, index) => (
+                                    <div key={site._id || index} className="flex items-center gap-1 text-xs">
+                                      <MapPin className="h-3 w-3 text-blue-400" />
+                                      <span className="text-white/70">
+                                        {site.name}
                                       </span>
-                                      <span className="text-white/50">({site.location})</span>
+                                      <span className="text-white/50">({site.locationName})</span>
                                     </div>
                                   ))
                                 ) : (
@@ -667,7 +605,7 @@ export default function PersonnelPage() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleEditSubmit}
+                  onClick={handleEditConfirm}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Update Personnel

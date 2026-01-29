@@ -6,6 +6,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Users, MapPin, Shield, Eye, EyeOff } from "lucide-react";
 import SidebarAndNavbar from "../components/SidebarAndNavbar";
 import { useAuth } from "../hooks/useAuth";
+import { useSites, useAnalytics } from "../hooks/useDynamicData";
+import { useRealTimeData } from "../hooks/useRealTime";
+import { exportMapToWord } from "../lib/exportMap";
 
 const boholTowns = [
   // First District
@@ -65,6 +68,10 @@ const boholTowns = [
 
 export default function DashboardPage() {
   const { user, isAdmin, isPersonnel, permissions } = useAuth();
+  const { data: sites, loading: sitesLoading } = useSites();
+  const { data: analytics, loading: analyticsLoading } = useAnalytics();
+  const { data: realTimeData, isConnected, error, refresh } = useRealTimeData();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [searchedTown, setSearchedTown] = useState<[number, number] | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -154,8 +161,8 @@ export default function DashboardPage() {
         <div className="flex-1 p-6 space-y-6">
           <header className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-medium text-white/60">Dashboard</div>
-              <div className="text-xl font-semibold tracking-tight text-white">Signal Overview</div>
+              <div className="text-xl font-semibold tracking-tight text-white">Dashboard Overview</div>
+              <div className="text-xs font-medium text-white/60">Visual overview of all monitored sites location across Bohol.</div>
             </div>
             
             {/* User role indicator and admin controls */}
@@ -171,19 +178,20 @@ export default function DashboardPage() {
               {/* Admin-only controls */}
               {isAdmin && (
                 <div className="hidden items-center gap-2 md:flex">
-                  <button className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/80 hover:bg-white/10">
+                  <button 
+                    onClick={() => exportMapToWord({ mapElementId: 'map-container' })}
+                    data-export-btn
+                    className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                  >
                     Export
-                  </button>
-                  <button className="rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-200 ring-1 ring-emerald-500/30 hover:bg-emerald-500/20">
-                    Live
                   </button>
                 </div>
               )}
             </div>
           </header>
 
-          <div className="relative flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/25 shadow-[0_0_0_1px_rgba(255,255,255,0.04)] h-[750px]">
-            <MapPanel onMapReady={handleMapReady} searchedTown={searchedTown} />
+          <div className="relative flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/25 shadow-[0_0_0_1px_rgba(255,255,255,0.04)] h-[750px]" id="map-container">
+            <MapPanel onMapReady={handleMapReady} searchedTown={searchedTown} sites={sites} />
 
             <div className="absolute left-4 top-4 right-4 flex items-center gap-3 md:right-auto md:w-[420px]">
               <form onSubmit={handleSearch} className="flex flex-1 items-center gap-2 relative search-container">
@@ -291,25 +299,52 @@ export default function DashboardPage() {
 
               {/* Signal Status */}
               <div className="rounded-xl border border-white/10 bg-black/40 p-3">
-                <h3 className="mb-2 text-sm font-medium text-white/70">Signal Status</h3>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-white/70">Signal Status</h3>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
+                      {isConnected ? '🟢 Live' : '🔴 Offline'}
+                    </span>
+                    <button
+                      onClick={refresh}
+                      className="text-xs text-white/60 hover:text-white/80 transition-colors"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-white/10 bg-black/40 p-3">
                     <div className="text-xs text-white/60">Active</div>
-                    <div className="mt-1 text-lg font-semibold text-emerald-300">14</div>
+                    <div className="mt-1 text-lg font-semibold text-emerald-300">
+                      {analytics?.activeSites || realTimeData?.analytics?.activeSites || 0}
+                    </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/40 p-3">
                     <div className="text-xs text-white/60">Unstable</div>
-                    <div className="mt-1 text-lg font-semibold text-amber-200">7</div>
+                    <div className="mt-1 text-lg font-semibold text-amber-200">
+                      {analytics?.unstableSites || realTimeData?.analytics?.unstableSites || 0}
+                    </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/40 p-3">
                     <div className="text-xs text-white/60">Unavailable</div>
-                    <div className="mt-1 text-lg font-semibold text-rose-200">3</div>
+                    <div className="mt-1 text-lg font-semibold text-rose-200">
+                      {analytics?.unavailableSites || realTimeData?.analytics?.unavailableSites || 0}
+                    </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/40 p-3">
                     <div className="text-xs text-white/60">Uptime</div>
-                    <div className="mt-1 text-lg font-semibold text-white">92%</div>
+                    <div className="mt-1 text-lg font-semibold text-white">
+                      {analytics?.averageSignalStrength ? 
+                        `${Math.round(analytics.averageSignalStrength)}%` : '92%'}
+                    </div>
                   </div>
                 </div>
+                {error && (
+                  <div className="mt-2 text-xs text-red-400">
+                    Error: {error}
+                  </div>
+                )}
               </div>
 
               {/* Signal Strength Distribution */}

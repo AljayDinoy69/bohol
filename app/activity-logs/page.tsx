@@ -95,8 +95,9 @@ export default function ActivityLogsPage() {
               className="flex items-center justify-between border-b border-white/10 bg-black/20 px-6 py-4 text-white backdrop-blur-lg"
             >
               <div>
-                <div className="text-xs font-medium text-white/60">Activity</div>
                 <div className="text-xl font-semibold tracking-tight">Activity Logs</div>
+                <div className="text-xs font-medium text-white/60">Monitor actions, updates, and access history for accountability.</div>
+                
               </div>
             </motion.header>
 

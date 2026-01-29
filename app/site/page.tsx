@@ -5,6 +5,7 @@ import { MapPin, Search, Plus, Edit, Trash2, Activity, Eye } from "lucide-react"
 import { motion } from "framer-motion";
 import SidebarAndNavbar from "../components/SidebarAndNavbar";
 import { useAuth } from "../hooks/useAuth";
+import { usePersonnel } from "../hooks/usePersonnel";
 
 const boholTowns = [
   // First District
@@ -64,61 +65,70 @@ const boholTowns = [
 
 export default function SitePage() {
   const { permissions } = useAuth();
+  const { personnel, loading: personnelLoading } = usePersonnel();
   const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showInspectModal, setShowInspectModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false); // For personnel to update status
   const [selectedSite, setSelectedSite] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sites, setSites] = useState<any[]>([]);
-  const [personnel, setPersonnel] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     siteName: "",
     town: "",
     assignedPersonnel: "",
     status: "active" as "active" | "warning" | "offline"
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Load sites and personnel from localStorage
+  // Load sites from database
+  const loadSitesFromDatabase = async () => {
+    try {
+      const response = await fetch('/api/sites');
+      const data = await response.json();
+      if (data.success) {
+        setSites(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading sites:', error);
+      // Don't fallback to localStorage - database is the source of truth
+      setSites([]);
+    }
+  };
+
   useEffect(() => {
-    const loadSites = () => {
-      const storedSites = JSON.parse(localStorage.getItem("bohol_sites") || "[]");
-      setSites(storedSites);
-    };
-
-    const loadPersonnel = () => {
-      const storedPersonnel = JSON.parse(localStorage.getItem("personnel") || "[]");
-      setPersonnel(storedPersonnel);
-    };
-
-    loadSites();
-    loadPersonnel();
-    
-    // Listen for updates
-    const handleSiteUpdate = () => {
-      loadSites();
-    };
-    
-    const handlePersonnelUpdate = () => {
-      loadPersonnel();
-    };
-    
-    window.addEventListener('bohol_sites_updated', handleSiteUpdate);
-    window.addEventListener('personnel_updated', handlePersonnelUpdate);
-    window.addEventListener('storage', handleSiteUpdate);
-    window.addEventListener('storage', handlePersonnelUpdate);
-    
-    return () => {
-      window.removeEventListener('bohol_sites_updated', handleSiteUpdate);
-      window.removeEventListener('personnel_updated', handlePersonnelUpdate);
-      window.removeEventListener('storage', handleSiteUpdate);
-      window.removeEventListener('storage', handlePersonnelUpdate);
-    };
+    loadSitesFromDatabase();
   }, []);
 
+  useEffect(() => {
+    // Auto-refresh sites every 10 seconds
+    const interval = setInterval(() => {
+      loadSitesFromDatabase();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    // Reload sites when modals close
+    if (!showAddModal && !showEditModal && !showDeleteModal && !showStatusModal) {
+      // Only reload if we had a modal open before
+    }
+  }, [showAddModal, showEditModal, showDeleteModal, showStatusModal]);
+
   const filtered = sites.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+
+  // Show loading state only for initial load, not for modal actions
+  if (personnelLoading) {
+    return (
+      <SidebarAndNavbar activePage="Manage Sites">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white/70">Loading personnel...</div>
+        </div>
+      </SidebarAndNavbar>
+    );
+  }
 
   // Function to check if assigned personnel still exists
   const getPersonnelDisplay = (assignedPersonnel: string) => {
@@ -139,12 +149,12 @@ export default function SitePage() {
     // Simulate loading delay
     setTimeout(() => {
       setIsLoading(false);
-      setShowModal(true);
+      setShowAddModal(true);
     }, 800);
   };
 
   const handleCloseModal = () => {
-    setShowModal(false);
+    setShowAddModal(false);
     setFormData({ siteName: "", town: "", assignedPersonnel: "", status: "active" });
   };
 
@@ -153,7 +163,7 @@ export default function SitePage() {
     setSelectedSite(site);
     setFormData({
       siteName: site.name,
-      town: site.location,
+      town: site.locationName || site.location,
       assignedPersonnel: site.assignedPersonnel || "",
       status: site.status.toLowerCase() === "active" ? "active" : 
               site.status.toLowerCase() === "warning" ? "warning" : "offline"
@@ -192,112 +202,88 @@ export default function SitePage() {
       return;
     }
 
-    // Check for duplicate site name (excluding current site)
-    const existingSites = JSON.parse(localStorage.getItem("bohol_sites") || "[]");
-    const duplicateName = existingSites.some((site: any) => 
-      site.name.toLowerCase() === formData.siteName.toLowerCase() && site.id !== selectedSite.id
-    );
-    
-    // Check for duplicate town assignment (excluding current site)
-    const duplicateTown = existingSites.some((site: any) => 
-      site.location.toLowerCase() === formData.town.toLowerCase() && site.id !== selectedSite.id
-    );
-
-    if (duplicateName) {
-      alert('A site with this name already exists!');
-      return;
-    }
-
-    if (duplicateTown) {
-      alert('A site is already assigned to this town!');
-      return;
-    }
-
     // Get coordinates for selected town
     const selectedTown = boholTowns.find(town => town.name === formData.town);
     if (!selectedTown) {
       return;
     }
 
-    // Update site
-    const updatedSite = {
-      ...selectedSite,
-      name: formData.siteName,
-      location: formData.town,
-      assignedPersonnel: formData.assignedPersonnel,
-      status: formData.status === "active" ? "Active" : formData.status === "warning" ? "Warning" : "Offline",
-      lat: selectedTown.lat,
-      lng: selectedTown.lng,
-      lastCheck: new Date().toLocaleString("en-US", { 
-        year: "numeric", 
-        month: "2-digit", 
-        day: "2-digit", 
-        hour: "2-digit", 
-        minute: "2-digit" 
-      }).replace(",", ""),
-      signal: formData.status === "active" ? "Strong" : formData.status === "warning" ? "Moderate" : "Weak"
-    };
+    console.log('[Client] Editing site with ID:', selectedSite._id);
+    console.log('[Client] Selected site object:', selectedSite);
 
-    // Update in localStorage
-    const updatedSites = existingSites.map((site: any) => 
-      site.id === selectedSite.id ? updatedSite : site
-    );
-    localStorage.setItem("bohol_sites", JSON.stringify(updatedSites));
-    
-    // Update personnel assignments
-    const personnelAssignments = JSON.parse(localStorage.getItem("personnel_assignments") || "{}");
-    Object.keys(personnelAssignments).forEach(personnel => {
-      personnelAssignments[personnel] = personnelAssignments[personnel].map((assignment: any) => 
-        assignment.siteId === selectedSite.id ? {
-          ...assignment,
-          siteName: updatedSite.name,
-          location: updatedSite.location,
-          status: updatedSite.status
-        } : assignment
-      );
+    // Update site in database
+    fetch(`/api/sites`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: selectedSite._id,
+        name: formData.siteName,
+        location: formData.town,
+        assignedPersonnel: formData.assignedPersonnel,
+        status: formData.status === "active" ? "Active" : formData.status === "warning" ? "Warning" : "Offline",
+        lat: selectedTown.lat,
+        lng: selectedTown.lng,
+        lastCheck: new Date().toLocaleString("en-US", { 
+          year: "numeric", 
+          month: "2-digit", 
+          day: "2-digit", 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        }).replace(",", ""),
+        signal: formData.status === "active" ? "Strong" : formData.status === "warning" ? "Moderate" : "Weak"
+      })
+    }).then(res => {
+      console.log('[Client] Update response status:', res.status);
+      return res.json();
+    }).then(data => {
+      console.log('[Client] Update response data:', data);
+      if (data.success) {
+        // Reload sites from database after a short delay
+        setTimeout(() => loadSitesFromDatabase(), 300);
+
+        // Close modal
+        setShowEditModal(false);
+        setSelectedSite(null);
+      } else {
+        alert('Failed to update site in database: ' + (data.error || 'Unknown error') + (data.details ? ' - ' + data.details : ''));
+      }
+    }).catch(err => {
+      console.error('Error updating site:', err);
+      alert('Error updating site: ' + err.message);
     });
-    localStorage.setItem("personnel_assignments", JSON.stringify(personnelAssignments));
-    
-    // Dispatch events to update pages immediately
-    window.dispatchEvent(new Event('bohol_sites_updated'));
-    window.dispatchEvent(new Event('personnel_assignments_updated'));
-
-    // Close modal
-    setShowEditModal(false);
-    setSelectedSite(null);
   };
 
   const handleDeleteConfirm = () => {
     if (!selectedSite) return;
 
-    // Delete from localStorage
-    const existingSites = JSON.parse(localStorage.getItem("bohol_sites") || "[]");
-    const updatedSites = existingSites.filter((site: any) => site.id !== selectedSite.id);
-    localStorage.setItem("bohol_sites", JSON.stringify(updatedSites));
-    
-    // Remove from personnel assignments
-    const personnelAssignments = JSON.parse(localStorage.getItem("personnel_assignments") || "{}");
-    Object.keys(personnelAssignments).forEach(personnel => {
-      personnelAssignments[personnel] = personnelAssignments[personnel].filter((assignment: any) => 
-        assignment.siteId !== selectedSite.id
-      );
+    // Delete from database
+    fetch(`/api/sites?id=${selectedSite._id}`, {
+      method: 'DELETE'
+    }).then(res => res.json()).then(data => {
+      if (data.success) {
+        // Clear localStorage to prevent fallback to old data
+        localStorage.removeItem("bohol_sites");
+        // Reload sites from database after a short delay
+        setTimeout(() => loadSitesFromDatabase(), 300);
+        // Close modal
+        setShowDeleteModal(false);
+        setSelectedSite(null);
+      } else {
+        alert('Failed to delete site from database: ' + (data.error || 'Unknown error'));
+      }
+    }).catch(err => {
+      console.error('Error deleting site:', err);
+      alert('Error deleting site: ' + err.message);
     });
-    localStorage.setItem("personnel_assignments", JSON.stringify(personnelAssignments));
-    
-    // Dispatch events to update pages immediately
-    window.dispatchEvent(new Event('bohol_sites_updated'));
-    window.dispatchEvent(new Event('personnel_assignments_updated'));
-
-    // Close modal
-    setShowDeleteModal(false);
-    setSelectedSite(null);
   };
 
   const handleStatusUpdate = (site: any) => {
     setSelectedSite(site);
     setFormData({
       siteName: site.name,
-      town: site.location,
+      town: site.locationName || site.location,
       assignedPersonnel: site.assignedPersonnel || "",
       status: site.status.toLowerCase() === "active" ? "active" : 
               site.status.toLowerCase() === "warning" ? "warning" : "offline"
@@ -310,63 +296,56 @@ export default function SitePage() {
     
     if (!selectedSite) return;
 
-    // Update only the status
-    const existingSites = JSON.parse(localStorage.getItem("bohol_sites") || "[]");
-    const updatedSites = existingSites.map((site: any) => 
-      site.id === selectedSite.id 
-        ? { 
-            ...site, 
-            status: formData.status === "active" ? "Active" : 
-                    formData.status === "warning" ? "Warning" : "Offline",
-            signal: formData.status === "active" ? "Strong" : 
-                    formData.status === "warning" ? "Moderate" : "Weak",
-            lastCheck: new Date().toLocaleString("en-US", { 
-              year: "numeric", 
-              month: "2-digit", 
-              day: "2-digit", 
-              hour: "2-digit", 
-              minute: "2-digit" 
-            }).replace(",", "")
-          }
-        : site
-    );
-    
-    localStorage.setItem("bohol_sites", JSON.stringify(updatedSites));
-    
-    // Dispatch event to update pages immediately
-    window.dispatchEvent(new Event('bohol_sites_updated'));
-
-    // Close modal
-    setShowStatusModal(false);
-    setSelectedSite(null);
-    setFormData({ siteName: "", town: "", assignedPersonnel: "", status: "active" });
+    // Update status in database
+    fetch(`/api/sites`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: selectedSite._id,
+        name: selectedSite.name,
+        location: selectedSite.locationName || selectedSite.location,
+        assignedPersonnel: selectedSite.assignedPersonnel,
+        status: formData.status === "active" ? "Active" : 
+                formData.status === "warning" ? "Warning" : "Offline",
+        lat: selectedSite.lat,
+        lng: selectedSite.lng,
+        signal: formData.status === "active" ? "Strong" : 
+                formData.status === "warning" ? "Moderate" : "Weak",
+        lastCheck: new Date().toLocaleString("en-US", { 
+          year: "numeric", 
+          month: "2-digit", 
+          day: "2-digit", 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        }).replace(",", "")
+      })
+    }).then(res => {
+      console.log('[Client] Status update response status:', res.status);
+      return res.json();
+    }).then(data => {
+      console.log('[Client] Status update response data:', data);
+      if (data.success) {
+        // Reload sites from database after a short delay
+        setTimeout(() => loadSitesFromDatabase(), 300);
+        // Close modal
+        setShowStatusModal(false);
+        setSelectedSite(null);
+        setFormData({ siteName: "", town: "", assignedPersonnel: "", status: "active" });
+      } else {
+        alert('Failed to update site status in database: ' + (data.error || 'Unknown error') + (data.details ? ' - ' + data.details : ''));
+      }
+    }).catch(err => {
+      console.error('Error updating site status:', err);
+      alert('Error updating site status: ' + err.message);
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.siteName || !formData.town || !formData.assignedPersonnel) {
-      return;
-    }
-
-    // Check for duplicate site name
-    const existingSites = JSON.parse(localStorage.getItem("bohol_sites") || "[]");
-    const duplicateName = existingSites.some((site: any) => 
-      site.name.toLowerCase() === formData.siteName.toLowerCase() && site.id !== selectedSite?.id
-    );
-    
-    // Check for duplicate town assignment
-    const duplicateTown = existingSites.some((site: any) => 
-      site.location.toLowerCase() === formData.town.toLowerCase() && site.id !== selectedSite?.id
-    );
-
-    if (duplicateName) {
-      alert('A site with this name already exists!');
-      return;
-    }
-
-    if (duplicateTown) {
-      alert('A site is already assigned to this town!');
       return;
     }
 
@@ -378,7 +357,7 @@ export default function SitePage() {
 
     // Create new site with coordinates
     const newSite = {
-      id: Date.now().toString(), // Use timestamp string for unique ID to match personnel IDs
+      id: Date.now().toString(),
       name: formData.siteName,
       location: formData.town,
       assignedPersonnel: formData.assignedPersonnel,
@@ -395,33 +374,53 @@ export default function SitePage() {
       lng: selectedTown.lng
     };
 
-    // Add site to local storage to sync with map
-    existingSites.push(newSite);
-    localStorage.setItem("bohol_sites", JSON.stringify(existingSites));
-    
-    // Update personnel assignments
-    const personnelAssignments = JSON.parse(localStorage.getItem("personnel_assignments") || "{}");
-    if (!personnelAssignments[formData.assignedPersonnel]) {
-      personnelAssignments[formData.assignedPersonnel] = [];
-    }
-    personnelAssignments[formData.assignedPersonnel].push({
-      siteId: newSite.id,
-      siteName: newSite.name,
-      location: newSite.location,
-      status: newSite.status
+    // Save to database
+    fetch('/api/sites', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: formData.siteName,
+        location: formData.town,
+        assignedPersonnel: formData.assignedPersonnel,
+        status: formData.status === "active" ? "Active" : formData.status === "warning" ? "Warning" : "Offline",
+        signal: formData.status === "active" ? "Strong" : formData.status === "warning" ? "Moderate" : "Weak",
+        lat: selectedTown.lat,
+        lng: selectedTown.lng,
+        lastCheck: new Date().toLocaleString("en-US", { 
+          year: "numeric", 
+          month: "2-digit", 
+          day: "2-digit", 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        }).replace(",", "")
+      })
+    }).then(res => {
+      console.log('[Client] Create site response status:', res.status);
+      return res.json();
+    }).then(data => {
+      console.log('[Client] Create site response data:', data);
+      if (data.success) {
+        console.log('[Client] Site created successfully, reloading sites...');
+        // Reload sites from database after a short delay
+        setTimeout(() => {
+          loadSitesFromDatabase().then(() => {
+            console.log('[Client] Sites reloaded');
+            handleCloseModal();
+          });
+        }, 300);
+      } else {
+        alert('Failed to create site: ' + (data.error || 'Unknown error') + (data.details ? ' - ' + data.details : ''));
+      }
+    }).catch(err => {
+      console.error('[Client] Error creating site:', err);
+      alert('Error creating site: ' + err.message);
     });
-    localStorage.setItem("personnel_assignments", JSON.stringify(personnelAssignments));
-    
-    // Dispatch events to update pages immediately
-    window.dispatchEvent(new Event('bohol_sites_updated'));
-    window.dispatchEvent(new Event('personnel_assignments_updated'));
-
-    // Close modal
-    handleCloseModal();
   };
 
   return (
-    <SidebarAndNavbar activePage="Site">
+    <SidebarAndNavbar activePage="Manage Sites">
       <div className="flex h-full">
         <div className="flex-1 overflow-auto relative">
           {/* Background image with dark overlay */}
@@ -441,8 +440,8 @@ export default function SitePage() {
               className="flex items-center justify-between border-b border-white/10 bg-black/20 px-6 py-4 text-white backdrop-blur-lg"
             >
               <div>
-                <div className="text-xs font-medium text-white/60">Site</div>
-                <div className="text-xl font-semibold tracking-tight">Site Management</div>
+                <div className="text-xl font-semibold tracking-tight">Manage Site</div>
+                <div className="text-xs font-medium text-white/60">Manage and update site information, settings, and content all in one place.</div>
               </div>
             </motion.header>
 
@@ -464,7 +463,7 @@ export default function SitePage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                   <input
                     type="text"
-                    placeholder="Search personnel..."
+                    placeholder="Search site..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-9 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/40 focus:outline-none"
@@ -517,7 +516,7 @@ export default function SitePage() {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="text-base font-semibold text-white">{site.name}</h3>
-                          <p className="text-xs text-white/60 mt-1">{site.location}</p>
+                          <p className="text-xs text-white/60 mt-1">{site.locationName || site.location}</p>
                           {(site as any).assignedPersonnel && (
                             <p className="text-xs mt-1">
                               <span className={
@@ -656,13 +655,13 @@ export default function SitePage() {
         </div>
       </div>
 
-      {/* Modal */}
-      {showModal && (
+      {/* Add Site Modal */}
+      {showAddModal && (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[60] flex items-center justify-center"
         >
           {/* Blurry background overlay */}
           <motion.div 
@@ -725,7 +724,7 @@ export default function SitePage() {
                     {personnel
                       .filter(p => p.status === "Active")
                       .map((person) => (
-                        <option key={person.id} value={person.name}>
+                        <option key={person._id} value={person.name}>
                           {person.name} - {person.role}
                         </option>
                       ))}
@@ -809,7 +808,7 @@ export default function SitePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[60] flex items-center justify-center"
         >
           <motion.div 
             initial={{ opacity: 0 }}
@@ -870,7 +869,7 @@ export default function SitePage() {
                     {personnel
                       .filter(p => p.status === "Active")
                       .map((person) => (
-                        <option key={person.id} value={person.name}>
+                        <option key={person._id} value={person.name}>
                           {person.name} - {person.role}
                         </option>
                       ))}
@@ -943,7 +942,7 @@ export default function SitePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[60] flex items-center justify-center"
         >
           <motion.div 
             initial={{ opacity: 0 }}
@@ -1008,7 +1007,7 @@ export default function SitePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[60] flex items-center justify-center"
         >
           <motion.div 
             initial={{ opacity: 0 }}
@@ -1048,7 +1047,7 @@ export default function SitePage() {
                   <MapPin className="h-5 w-5 text-blue-400" />
                   <div>
                     <h3 className="text-lg font-semibold text-white">{selectedSite.name}</h3>
-                    <p className="text-sm text-white/60">{selectedSite.location}</p>
+                    <p className="text-sm text-white/60">{selectedSite.locationName || selectedSite.location}</p>
                   </div>
                 </div>
                 
@@ -1119,7 +1118,7 @@ export default function SitePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[60] flex items-center justify-center"
         >
           <motion.div 
             initial={{ opacity: 0 }}

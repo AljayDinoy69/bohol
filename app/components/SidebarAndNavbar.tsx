@@ -20,9 +20,9 @@ export default function SidebarAndNavbar({ activePage, children }: { activePage:
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     ) },
-    { label: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, requiredPermission: permissions.canViewReports },
     { label: "Personnel", href: "/personnel", icon: <Users className="h-5 w-5" />, requiredPermission: permissions.canModifyPersonnel },
-    { label: "Site", href: "/site", icon: <MapPin className="h-5 w-5" />, requiredPermission: permissions.canModifySites },
+    { label: "Manage Sites", href: "/site", icon: <MapPin className="h-5 w-5" />, requiredPermission: permissions.canModifySites },
+    { label: "Activity Logs", href: "/activity-logs", icon: <FileText className="h-5 w-5" />, requiredPermission: permissions.canViewReports }
   ].filter(item => !item.requiredPermission || item.requiredPermission);
 
   return (
@@ -45,7 +45,7 @@ export default function SidebarAndNavbar({ activePage, children }: { activePage:
                       href={item.href}
                       className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                         activePage === item.label
-                          ? "bg-white/8 text-white backdrop-blur-sm hover:bg-white/12"
+                          ? "bg-white/15 text-white backdrop-blur-sm hover:bg-white/20 shadow-lg"
                           : "text-white/70 hover:bg-white/5 hover:text-white"
                       }`}
                     >

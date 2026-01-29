@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
@@ -12,6 +12,7 @@ type MapMarker = {
   id: string;
   kind: MarkerKind;
   position: [number, number];
+  site?: any;
 };
 
 function markerHtml(kind: MarkerKind) {
@@ -84,40 +85,126 @@ function MapEventHandler({
   return null;
 }
 
-function DynamicMarkers() {
+function DynamicMarkers({ sites }: { sites?: any[] }) {
   const [dynamicMarkers, setDynamicMarkers] = useState<MapMarker[]>([]);
+  const markerRefs = useState<any>({})
 
   useEffect(() => {
-    const loadSites = () => {
-      const sites = JSON.parse(localStorage.getItem("bohol_sites") || "[]");
-      const markers: MapMarker[] = sites.map((site: any, index: number) => ({
-        id: `site-${site.id}-${site.name?.replace(/\s+/g, '-') || 'unknown'}-${index}`,
-        position: [site.lat, site.lng] as [number, number],
-        kind: site.status === "Active" ? "active" : 
-              site.status === "Warning" ? "unstable" : "unavailable" as MarkerKind
-      }));
-      setDynamicMarkers(markers);
+    const loadSites = async () => {
+      try {
+        // If sites are provided as prop, use them
+        if (sites && sites.length > 0) {
+          const markers: MapMarker[] = sites.map((site: any, index: number) => ({
+            id: `site-${site._id || site.id}-${site.name?.replace(/\s+/g, '-') || 'unknown'}-${index}`,
+            position: [site.lat, site.lng] as [number, number],
+            kind: site.status === "Active" ? "active" : 
+                  site.status === "Warning" ? "unstable" : "unavailable" as MarkerKind,
+            site: site
+          }));
+          setDynamicMarkers(markers);
+        } else {
+          // Fallback to fetching from API if no sites prop provided
+          const response = await fetch('/api/sites');
+          const data = await response.json();
+          if (data.success && data.data) {
+            const markers: MapMarker[] = data.data.map((site: any, index: number) => ({
+              id: `site-${site._id || site.id}-${site.name?.replace(/\s+/g, '-') || 'unknown'}-${index}`,
+              position: [site.lat, site.lng] as [number, number],
+              kind: site.status === "Active" ? "active" : 
+                    site.status === "Warning" ? "unstable" : "unavailable" as MarkerKind,
+              site: site
+            }));
+            setDynamicMarkers(markers);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading sites:', error);
+      }
     };
 
     loadSites();
-    
-    const handleStorageChange = () => {
-      loadSites();
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('bohol_sites_updated', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('bohol_sites_updated', handleStorageChange);
-    };
-  }, []);
+  }, [sites]);
+
+  const getStatusColor = (status: string) => {
+    if (status === "Active") return "text-emerald-400";
+    if (status === "Warning") return "text-amber-400";
+    return "text-red-400";
+  };
+
+  const getStatusBgColor = (status: string) => {
+    if (status === "Active") return "bg-emerald-500/20";
+    if (status === "Warning") return "bg-amber-500/20";
+    return "bg-red-500/20";
+  };
+
+  const getSafeValue = (value: any) => {
+    if (value === null || value === undefined) return "N/A";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  };
+
+  const handleMarkerMouseOver = (e: any) => {
+    e.target.openPopup();
+  };
+
+  const handleMarkerMouseOut = (e: any) => {
+    e.target.closePopup();
+  };
 
   return (
     <>
       {dynamicMarkers.map((marker) => (
-        <Marker key={marker.id} position={marker.position} icon={makeDotIcon(marker.kind)} />
+        <Marker 
+          key={marker.id} 
+          position={marker.position} 
+          icon={makeDotIcon(marker.kind)}
+          eventHandlers={{
+            mouseover: handleMarkerMouseOver,
+            mouseout: handleMarkerMouseOut
+          }}
+        >
+          <Popup 
+            className="custom-popup"
+            closeButton={false}
+            autoClose={false}
+            closeOnClick={false}
+          >
+            <div className="w-64 p-3 bg-black/90 rounded-lg border border-white/20 text-white text-sm">
+              <h3 className="font-semibold text-white mb-2">{getSafeValue(marker.site?.name || "Unknown Site")}</h3>
+              
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70">Status:</span>
+                  <span className={`font-medium ${getStatusColor(getSafeValue(marker.site?.status))}`}>
+                    {getSafeValue(marker.site?.status)}
+                  </span>
+                </div>
+
+                {marker.site?.assignedTo && (
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-white/70">Assigned Personnel:</span>
+                    <span className="text-right text-white/80">{getSafeValue(marker.site.assignedTo)}</span>
+                  </div>
+                )}
+
+                {marker.site?.lastUpdate && (
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-white/70">Updated:</span>
+                    <span className="text-right text-white/60">
+                      {new Date(marker.site.lastUpdate).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
+                <div className={`mt-3 px-2 py-1 rounded text-center font-medium text-xs ${getStatusBgColor(getSafeValue(marker.site?.status))}`}>
+                  {getSafeValue(marker.site?.status) === 'Active' && '✓ All Systems Operational'}
+                  {getSafeValue(marker.site?.status) === 'Warning' && '⚠ Check Required'}
+                  {getSafeValue(marker.site?.status) === 'Unavailable' && '✕ Offline'}
+                </div>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
       ))}
     </>
   );
@@ -128,11 +215,13 @@ export default function LeafletMap({
   center,
   onMapReady,
   searchedTown,
+  sites,
 }: {
   className?: string;
   center?: [number, number];
   onMapReady?: (actions: { zoomIn: () => void; zoomOut: () => void; setView: (center: [number, number], zoom?: number) => void }) => void;
   searchedTown?: [number, number] | null;
+  sites?: any[];
 }) {
   return (
     <div className={className ? `${className} h-full w-full` : "h-full w-full"}>
@@ -148,7 +237,7 @@ export default function LeafletMap({
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
-        <DynamicMarkers />
+        <DynamicMarkers sites={sites} />
         {searchedTown && (
           <Marker
             position={searchedTown}
